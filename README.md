@@ -1,4 +1,47 @@
-Growatt MIC & Marstek Venus: 100% Software Nulleinspeisung (Node-RED)Dieses Projekt ermöglicht eine echte, dynamische Nulleinspeisung für Growatt Wechselrichter (MIC-Serie) in Kombination mit dem Marstek Venus E 3.0 Batteriespeicher, OHNE den teuren Original-Zähler (Eastron/Chint) und OHNE Eingriffe in das EEPROM oder das Flashen von Mikrocontrollern.Die gesamte Steuerung läuft als reine Software-Lösung über Home Assistant und einen Node-RED Modbus-Emulator.🌟 Das Problem & Die LösungNormalerweise akzeptiert der Growatt nur Daten von direkt angeschlossenen, zertifizierten Smartmetern. Bisherige Workarounds erforderten oft das riskante Beschreiben des Wechselrichter-EEPROMs oder das Basteln von ESP32-Hardware.Dieser Lösungsansatz nutzt Node-RED, um dem Wechselrichter über einen einfachen USB-Adapter einen Eastron SDM630 V2 Zähler vorzuspielen.Der entscheidende Fix (Der Chint ID 1 Bug):Beim morgendlichen Booten scannt der Growatt das Netz und sucht hartnäckig auf der Modbus ID 1 nach einem Chint-Zähler. Antwortet man ihm dort mit Eastron-Float-Werten, entsteht ein Integer-Overflow (die App zeigt astronomische Verbräuche wie 214 Mio. kWh). Der hier bereitgestellte Node-RED Flow enthält einen strikten Filter, der Anfragen auf ID 1 ignoriert und den Growatt zwingt, dauerhaft und stabil auf ID 2 (Eastron) zu arbeiten.🛠️ Mein Hardware-SetupHome Assistant Server: HP t630 Thin ClientWechselrichter: Growatt MIC 1500TL-X👉 Growatt MIC 1500 auf Amazon ansehen (Affiliate-Link)Batteriespeicher: Marstek Venus E 3.0 (für maximale Stabilität per LAN ins Netzwerk eingebunden)👉 Marstek Speicher auf Amazon ansehen (Affiliate-Link)Haus-Smartmeter: Shelly Pro 3EM (ebenfalls per LAN verbunden)👉 Shelly Pro 3EM auf Amazon ansehen (Affiliate-Link)Modbus-Adapter: RS485 zu USB Stick👉 Empfohlener RS485 zu USB Adapter auf Amazon (Affiliate-Link)💡 Profi-Tipp zur Software: Für die perfekte Einbindung und Steuerung des Akkus in Home Assistant empfehle ich dringend die Marstek Venus Modbus Integration (verfügbar über HACS). Damit harmoniert dieses Setup am besten!🚀 Schritt-für-Schritt Anleitung1. Home Assistant: configuration.yamlFüge diesen Code in deine configuration.yaml ein, um die Datenmenge zu reduzieren und die Hardware zu schonen:input_number:
+Growatt MIC & Marstek Venus: 100% Software Nulleinspeisung (Node-RED)
+
+Dieses Projekt ermöglicht eine echte, dynamische Nulleinspeisung für Growatt Wechselrichter (MIC-Serie) in Kombination mit dem Marstek Venus E 3.0 Batteriespeicher, OHNE den teuren Original-Zähler (Eastron/Chint) und OHNE Eingriffe in das EEPROM oder das Flashen von Mikrocontrollern.
+
+Die gesamte Steuerung läuft als reine Software-Lösung über Home Assistant und einen Node-RED Modbus-Emulator.
+
+🌟 Das Problem & Die Lösung
+
+Normalerweise akzeptiert der Growatt nur Daten von direkt angeschlossenen, zertifizierten Smartmetern. Bisherige Workarounds erforderten oft das riskante Beschreiben des Wechselrichter-EEPROMs oder das Basteln von ESP32-Hardware.
+
+Dieser Lösungsansatz nutzt Node-RED, um dem Wechselrichter über einen einfachen USB-Adapter einen Eastron SDM630 V2 Zähler vorzuspielen.
+
+Der entscheidende Fix (Der Chint ID 1 Bug):
+Beim morgendlichen Booten scannt der Growatt das Netz und sucht hartnäckig auf der Modbus ID 1 nach einem Chint-Zähler. Antwortet man ihm dort mit Eastron-Float-Werten, entsteht ein Integer-Overflow (die App zeigt astronomische Verbräuche wie 214 Mio. kWh). Der hier bereitgestellte Node-RED Flow enthält einen strikten Filter, der Anfragen auf ID 1 ignoriert und den Growatt zwingt, dauerhaft und stabil auf ID 2 (Eastron) zu arbeiten.
+
+🛠️ Mein Hardware-Setup
+
+Home Assistant Server: HP t630 Thin Client
+
+Wechselrichter: Growatt MIC 1500TL-X
+
+👉 Growatt MIC 1500 auf Amazon ansehen (Affiliate-Link)
+
+Batteriespeicher: Marstek Venus E 3.0 (für maximale Stabilität per LAN ins Netzwerk eingebunden)
+
+👉 Marstek Speicher auf Amazon ansehen (Affiliate-Link)
+
+Haus-Smartmeter: Shelly Pro 3EM (ebenfalls per LAN verbunden)
+
+👉 Shelly Pro 3EM auf Amazon ansehen (Affiliate-Link)
+
+Modbus-Adapter: RS485 zu USB Stick
+
+👉 Empfohlener RS485 zu USB Adapter auf Amazon (Affiliate-Link)
+
+💡 Profi-Tipp zur Software: Für die perfekte Einbindung und Steuerung des Akkus in Home Assistant empfehle ich dringend die Marstek Venus Modbus Integration (verfügbar über HACS). Damit harmoniert dieses Setup am besten!
+
+🚀 Schritt-für-Schritt Anleitung
+
+1. Home Assistant: configuration.yaml
+
+Füge diesen Code in deine configuration.yaml ein, um die Datenmenge zu reduzieren und die Hardware zu schonen:
+
+input_number:
   fake_sdm_power:
     name: "Fake SDM Power"
     min: -15000
@@ -11,7 +54,13 @@ recorder:
   exclude:
     entities:
       - input_number.fake_sdm_power
-2. Home Assistant: Die Automatisierung (Sekundengenau)Erstelle eine neue Automatisierung und füge diesen YAML-Code ein. Diese Logik berechnet jede Sekunde den exakten Wert für den Growatt:alias: "SDM Emulator: Werte für Growatt berechnen (Sekundengenau)"
+
+
+2. Home Assistant: Die Automatisierung (Sekundengenau)
+
+Erstelle eine neue Automatisierung und füge diesen YAML-Code ein. Diese Logik berechnet jede Sekunde den exakten Wert für den Growatt:
+
+alias: "SDM Emulator: Werte für Growatt berechnen (Sekundengenau)"
 description: >-
   Regelt den Growatt via Node-RED. Nulleinspeisung bei manual Modus oder vollem
   Akku im anti_feed Modus.
@@ -48,7 +97,16 @@ actions:
         {% else %}
           {{ shelly_watt }}
         {% endif %}
-3. Das Marstek Steuerungs-Dashboard (Vollversion)Hier ist der vollständige Code für die High-End Dashboard-Karte (benötigt Mushroom Cards, Card-Mod und Stack-in-Card via HACS).<details><summary><b>KLICKE HIER FÜR DEN VOLLSTÄNDIGEN DASHBOARD-CODE</b></summary>type: custom:mod-card
+
+
+3. Das Marstek Steuerungs-Dashboard (Vollversion)
+
+Hier ist der vollständige Code für die High-End Dashboard-Karte (benötigt Mushroom Cards, Card-Mod und Stack-in-Card via HACS).
+
+<details>
+<summary><b>KLICKE HIER FÜR DEN VOLLSTÄNDIGEN DASHBOARD-CODE</b></summary>
+
+type: custom:mod-card
 column_span: 2
 grid_options:
   columns: 24
@@ -271,4 +329,14 @@ card:
               entity: sensor.marstek_venus_modbus_gesamt_roundtrip_effizienz
               primary: Effizienz
               secondary: "{{ states(entity) }} %"
-</details>4. Node-RED: Der Emulator-FlowImportiere die in diesem Repository beiliegende flow.json Datei in dein Node-RED. Der Flow übernimmt die Kommunikation zwischen Home Assistant und dem RS485-Stick.☕ Support / KaffeekasseDieses Projekt hat Wochen an Analyse, Modbus-Debugging und Fehlersuche erfordert. Wenn dir dieser Code hunderte Euro für Original-Hardware erspart hat, freue ich mich riesig über eine kleine Unterstützung!
+
+
+</details>
+
+4. Node-RED: Der Emulator-Flow
+
+Importiere die in diesem Repository beiliegende flow.json Datei in dein Node-RED. Der Flow übernimmt die Kommunikation zwischen Home Assistant und dem RS485-Stick.
+
+☕ Support / Kaffeekasse
+
+Dieses Projekt hat Wochen an Analyse, Modbus-Debugging und Fehlersuche erfordert. Wenn dir dieser Code hunderte Euro für Original-Hardware erspart hat, freue ich mich riesig über eine kleine Unterstützung!
