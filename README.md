@@ -60,7 +60,7 @@ Füge den folgenden Code in deine `configuration.yaml` ein (und starte Home Assi
 ```yaml
 input_number:
   fake_sdm_power:
-    name: "Fake SDM Power"
+    name: "Fake SDM Power (Steuervariable)"
     min: -15000
     max: 15000
     step: 0.1
@@ -70,7 +70,7 @@ input_number:
 recorder:
   exclude:
     entities:
-      - input_number.fake_sdm_poweryaml
+      - input_number.fake_sdm_power
 ```
 💡 Wozu dient das?
 
