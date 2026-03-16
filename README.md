@@ -60,12 +60,13 @@ Füge den folgenden Code in deine `configuration.yaml` ein (und starte Home Assi
 ```yaml
 input_number:
   fake_sdm_power:
-    name: "Fake SDM Power (Steuervariable)"
+    name: "Fake SDM Power"
     min: -15000
     max: 15000
     step: 0.1
     unit_of_measurement: "W"
     mode: box
+
 
 recorder:
   exclude:
