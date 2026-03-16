@@ -85,13 +85,13 @@ Node-RED greift diesen Wert im Sekundentakt ab und sendet ihn als simuliertes Sm
 Erstelle eine neue Automatisierung, klicke oben rechts auf die drei Punkte, wähle "Als YAML bearbeiten" und füge dies ein (passe die Sensoren-Namen an deine an):
 
 ```yaml
-alias: "SDM Emulator: Werte für Growatt berechnen (Optimiert)"
+alias: "SDM Emulator: Werte für Growatt berechnen (Sekundengenau)"
 description: >-
   Regelt den Growatt via Node-RED. Nulleinspeisung bei manual Modus oder vollem
-  Akku im anti_feed Modus. Trigger-Intervall auf 5 Sekunden optimiert.
+  Akku im anti_feed Modus.
 triggers:
-  - trigger: time_pattern
-    seconds: /5
+  - seconds: /1
+    trigger: time_pattern
 conditions: []
 actions:
   - action: input_number.set_value
@@ -100,16 +100,26 @@ actions:
     data:
       value: >-
         {# Variablen laden #}
-        {% set akku_soc = states('sensor.marstek_venus_modbus_batterie_ladezustand') | float(0) %}
-        {% set shelly_watt = states('sensor.shellypro3em_leistung') | float(0) %}
+
+        {% set akku_soc =
+        states('sensor.marstek_venus_modbus_batterie_ladezustand') | float(0) %}
+
+        {% set shelly_watt = states('sensor.shellypro3em_leistung') | float(0)
+        %}
+
         {% set marstek_modus = states('select.marstek_venus_modbus_modus') %}
 
+
         {# 1. PRIORITÄT: Marstek steht auf 'manual' #}
+
         {% if marstek_modus == 'manual' %}
           {{ shelly_watt }}
 
-        {# 2. PRIORITÄT: Marstek steht auf 'anti_feed' oder 'self_consumption' #}
-        {% elif marstek_modus in ['anti_feed', 'self_consumption'] %}
+        {# 2. PRIORITÄT: Marstek steht auf 'anti_feed' oder 'self_consumption'
+        #}
+
+        {% elif marstek_modus == 'anti_feed' or marstek_modus ==
+        'self_consumption' %}
           {# Wenn Akku noch nicht ganz voll ist (bis 100%), gib Gas für die Ladung #}
           {% if akku_soc < 100 %}
             1500
@@ -119,6 +129,7 @@ actions:
           {% endif %}
 
         {# STANDARDFALL #}
+
         {% else %}
           {{ shelly_watt }}
         {% endif %}
