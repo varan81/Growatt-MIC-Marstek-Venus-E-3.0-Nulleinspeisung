@@ -1,46 +1,63 @@
-Growatt MIC & Marstek Venus: 100% Software Nulleinspeisung (Node-RED)
+# Growatt MIC & Marstek Venus: 100% Software Nulleinspeisung (Node-RED)
 
-Dieses Projekt ermöglicht eine echte, dynamische Nulleinspeisung für Growatt Wechselrichter (MIC-Serie) in Kombination mit dem Marstek Venus E 3.0 Batteriespeicher, OHNE den teuren Original-Zähler (Eastron/Chint) und OHNE Eingriffe in das EEPROM oder das Flashen von Mikrocontrollern.
+Dieses Projekt ermöglicht eine echte, dynamische Nulleinspeisung für **Growatt Wechselrichter (MIC-Serie)** in Kombination mit dem **Marstek Venus E 3.0** Batteriespeicher, **OHNE** den teuren Original-Zähler (Eastron/Chint) und **OHNE Eingriffe in das EEPROM** oder das Flashen von Mikrocontrollern.
+
+⚠️ Warum die Software-Lösung (Emulator) sicherer ist
+
+Die meisten bisherigen Ansätze zur Nulleinspeisung versuchen, die Leistung des Growatt-Wechselrichters direkt über Modbus-Register zu drosseln. Das ist aus zwei Gründen brandgefährlich:
+
+Begrenzte Schreibzyklen (EEPROM-Verschleiß):
+Die internen Speicherzellen (EEPROM) eines Wechselrichters sind nicht dafür ausgelegt, sekündlich neue Werte zu empfangen. Sie haben eine technisch begrenzte Lebensdauer (oft nur 100.000 Schreibvorgänge). Wer die Leistung jede Sekunde direkt regelt, erreicht dieses Limit bereits nach ca. 28 Stunden. Danach ist der Speicher physisch defekt, und der Wechselrichter wird zum Totalschaden (Briefbeschwerer), da er seine Einstellungen nicht mehr speichern kann.
+
+Garantieverlust & Risiko:
+Direkte Eingriffe in die Leistungsregister werden vom Hersteller protokolliert. Bei einem Defekt lässt sich sofort nachweisen, dass das Gerät außerhalb der Spezifikationen betrieben wurde.
+
+Mein Ansatz via SDM-Emulator:
+Dieses Projekt nutzt einen völlig anderen Weg. Wir beschreiben keine internen Register. Wir simulieren stattdessen lediglich einen externen Stromzähler (Eastron SDM630). Der Growatt "denkt", er kommuniziert mit einem offiziell unterstützten Smartmeter und regelt seine Leistung intern über seine eigene, sichere Logik.
+
+Kein Verschleiß: Da keine internen Speicherzellen überschrieben werden, bleibt die Hardware geschützt.
+
+Maximale Sicherheit: Der Wechselrichter arbeitet innerhalb seiner vorgesehenen Betriebsparameter.
 
 Die gesamte Steuerung läuft als reine Software-Lösung über Home Assistant und einen Node-RED Modbus-Emulator.
 
-🌟 Das Problem & Die Lösung
+## 🌟 Das Problem & Die Lösung
 
-Normalerweise akzeptiert der Growatt nur Daten von direkt angeschlossenen, zertifizierten Smartmetern. Bisherige Workarounds erforderten oft das riskante Beschreiben des Wechselrichter-EEPROMs oder das Basteln von ESP32-Hardware.
+Normalerweise akzeptiert der Growatt nur Daten von direkt angeschlossenen, zertifizierten Smartmetern. Bisherige Workarounds erforderten oft das riskante Beschreiben des Wechselrichter-EEPROMs oder das Basteln von ESP32-Hardware. 
 
-Dieser Lösungsansatz nutzt Node-RED, um dem Wechselrichter über einen einfachen USB-Adapter einen Eastron SDM630 V2 Zähler vorzuspielen.
+Dieser Lösungsansatz nutzt **Node-RED**, um dem Wechselrichter über einen einfachen USB-Adapter einen **Eastron SDM630 V2** Zähler vorzuspielen.
 
-Der entscheidende Fix (Der Chint ID 1 Bug):
-Beim morgendlichen Booten scannt der Growatt das Netz und sucht hartnäckig auf der Modbus ID 1 nach einem Chint-Zähler. Antwortet man ihm dort mit Eastron-Float-Werten, entsteht ein Integer-Overflow (die App zeigt astronomische Verbräuche wie 214 Mio. kWh). Der hier bereitgestellte Node-RED Flow enthält einen strikten Filter, der Anfragen auf ID 1 ignoriert und den Growatt zwingt, dauerhaft und stabil auf ID 2 (Eastron) zu arbeiten.
+---
 
-🛠️ Mein Hardware-Setup
+## 🛠️ Mein Hardware-Setup
 
-Home Assistant Server: HP t630 Thin Client
+* **Home Assistant Server:** HP t630 Thin Client
+* **Wechselrichter:** Growatt MIC 1500TL-X
+  👉 **[Growatt MIC 1500 auf Amazon ansehen](https://amzn.to/4bcaEP3)** *(Affiliate-Link)*
+* **Batteriespeicher:** Marstek Venus E 3.0 (für maximale Stabilität per **LAN** ins Netzwerk eingebunden)
+  👉 **[Marstek Speicher auf Amazon ansehen](https://amzn.to/4cPGQZN)** *(Affiliate-Link)*
+* **Haus-Smartmeter:** Shelly Pro 3EM (ebenfalls per **LAN** verbunden)
+  👉 **[Shelly Pro 3EM auf Amazon ansehen](https://amzn.to/3PmjXTX)** *(Affiliate-Link)*
+* **Modbus-Adapter:** RS485 zu USB Stick
+  👉 **[Empfohlener RS485 zu USB Adapter auf Amazon](https://amzn.to/4rwb8EE)** *(Affiliate-Link)*
 
-Wechselrichter: Growatt MIC 1500TL-X
+*💡 Profi-Tipp zur Software:* Für die perfekte Einbindung und Steuerung des Akkus in Home Assistant empfehle ich dringend die **Marstek Venus Modbus** Integration (verfügbar über HACS). Damit harmoniert dieses Setup am besten!
 
-👉 Growatt MIC 1500 auf Amazon ansehen (Affiliate-Link)
+### 🔌 Verkabelung (Growatt zu USB-Stick)
+Die Verbindung ist extrem simpel. Der Growatt hat unten einen "SYS" (System) Modbus-Anschluss.
+* Verbinde **Pin 3** (RS485A) des Growatt-Steckers mit **A+** am USB-Stick.
+* Verbinde **Pin 4** (RS485B) des Growatt-Steckers mit **B-** am USB-Stick.
+* Also die gleichen Pins, die auch ein Eastron benutzt.
+* Stecke den USB-Stick in deinen Home Assistant Server (HP t630).
 
-Batteriespeicher: Marstek Venus E 3.0 (für maximale Stabilität per LAN ins Netzwerk eingebunden)
+---
 
-👉 Marstek Speicher auf Amazon ansehen (Affiliate-Link)
+## 🚀 Schritt-für-Schritt Anleitung
 
-Haus-Smartmeter: Shelly Pro 3EM (ebenfalls per LAN verbunden)
+### 1. Home Assistant: `configuration.yaml`
+Füge den folgenden Code in deine `configuration.yaml` ein (und starte Home Assistant danach neu):
 
-👉 Shelly Pro 3EM auf Amazon ansehen (Affiliate-Link)
-
-Modbus-Adapter: RS485 zu USB Stick
-
-👉 Empfohlener RS485 zu USB Adapter auf Amazon (Affiliate-Link)
-
-💡 Profi-Tipp zur Software: Für die perfekte Einbindung und Steuerung des Akkus in Home Assistant empfehle ich dringend die Marstek Venus Modbus Integration (verfügbar über HACS). Damit harmoniert dieses Setup am besten!
-
-🚀 Schritt-für-Schritt Anleitung
-
-1. Home Assistant: configuration.yaml
-
-Füge diesen Code in deine configuration.yaml ein, um die Datenmenge zu reduzieren und die Hardware zu schonen:
-
+```yaml
 input_number:
   fake_sdm_power:
     name: "Fake SDM Power"
@@ -53,20 +70,27 @@ input_number:
 recorder:
   exclude:
     entities:
-      - input_number.fake_sdm_power
+      - input_number.fake_sdm_poweryaml
+```
+💡 Wozu dient das?
 
+1. "Gib Gas" (Lademodus): Das System schreibt hier 1500W rein, um den Akku mit maximaler Leistung zu laden.
 
-2. Home Assistant: Die Automatisierung (Sekundengenau)
+2. "Nulleinspeisung - Akku voll": Das System schreibt hier exakt den aktuellen Hausverbrauch rein, um den Netzbezug auf Null zu regeln.
+Node-RED greift diesen Wert im Sekundentakt ab und sendet ihn als simuliertes Smartmeter-Signal an den Wechselrichter.. Da sich dieser Wert alle paar Sekunden ändert, würde er extrem schnell die Datenbank von Home Assistant aufblähen. Der recorder-Eintrag schließt diesen virtuellen Sensor von der Speicherung aus. Das schont deine SSD/SD-Karte massiv und hält das System schnell.
 
-Erstelle eine neue Automatisierung und füge diesen YAML-Code ein. Diese Logik berechnet jede Sekunde den exakten Wert für den Growatt:
+### 2. Home Assistant: `Die Automatisierung`
 
-alias: "SDM Emulator: Werte für Growatt berechnen (Sekundengenau)"
+Erstelle eine neue Automatisierung, klicke oben rechts auf die drei Punkte, wähle "Als YAML bearbeiten" und füge dies ein (passe die Sensoren-Namen an deine an):
+
+```yaml
+alias: "SDM Emulator: Werte für Growatt berechnen (Optimiert)"
 description: >-
   Regelt den Growatt via Node-RED. Nulleinspeisung bei manual Modus oder vollem
-  Akku im anti_feed Modus.
+  Akku im anti_feed Modus. Trigger-Intervall auf 5 Sekunden optimiert.
 triggers:
-  - seconds: /1
-    trigger: time_pattern
+  - trigger: time_pattern
+    seconds: /5
 conditions: []
 actions:
   - action: input_number.set_value
@@ -84,7 +108,7 @@ actions:
           {{ shelly_watt }}
 
         {# 2. PRIORITÄT: Marstek steht auf 'anti_feed' oder 'self_consumption' #}
-        {% elif marstek_modus == 'anti_feed' or marstek_modus == 'self_consumption' %}
+        {% elif marstek_modus in ['anti_feed', 'self_consumption'] %}
           {# Wenn Akku noch nicht ganz voll ist (bis 100%), gib Gas für die Ladung #}
           {% if akku_soc < 100 %}
             1500
@@ -97,15 +121,27 @@ actions:
         {% else %}
           {{ shelly_watt }}
         {% endif %}
+```
+💡 Wozu dient das?
 
+Die intelligente Ladesteuerung (Logik)
+Diese Automatisierung ist das Herzstück der Anlage. Sie steuert dynamisch, wie viel Leistung der Growatt-Wechselrichter erbringen soll:
 
-3. Das Marstek Steuerungs-Dashboard (Vollversion)
+1. Lade-Priorität: Solange der Akku-Ladestand (SoC) unter 100% liegt, täuscht das System dem Wechselrichter einen hohen Verbrauch von 1500 Watt vor. Dadurch produziert der Growatt maximale Energie, um den Marstek-Speicher schnellstmöglich aufzuladen.
 
-Hier ist der vollständige Code für die High-End Dashboard-Karte (benötigt Mushroom Cards, Card-Mod und Stack-in-Card via HACS).
+2. Nulleinspeisung: Sobald der Akku 100% erreicht hat oder wenn das System auf manuell (in der App oder dem Dashboard) gestellt wird, schaltet die Logik um. Jetzt wird exakt der aktuelle Hausverbrauch vom Shelly an den Wechselrichter gemeldet. Der Growatt regelt punktgenau auf diesen Wert herunter, sodass kein Strom ins Netz verschenkt wird.
 
-<details>
-<summary><b>KLICKE HIER FÜR DEN VOLLSTÄNDIGEN DASHBOARD-CODE</b></summary>
+### 3. Node-RED: Der Emulator-Flow
 
+Importiere die in diesem Repository beiliegende flow.json Datei in dein Node-RED.
+Der Flow liest alle 5 Sekunden die input_number.fake_sdm_power aus Home Assistant aus, bereitet die Daten mathematisch für 3 Phasen auf und antwortet dem Growatt in perfektem Eastron-Modbus-Hexadezimalcode.
+Vergiss nicht, im Node-RED Flow den richtigen USB-Port für deinen RS485-Stick auszuwählen!
+
+### 4. Das Marstek Steuerungs-Dashboard (Optional)
+
+Als Option ist hier der YAML-Code für eine "hochmoderne" ;), im Glas-Design gehaltene Home Assistant Dashboard-Karte, mit der du den Marstek-Akku überwachen und steuern kannst (benötigt Mushroom Cards, Card-Mod und Stack-in-Card via HACS). Tablet und Handy kompatibel
+
+```yaml
 type: custom:mod-card
 column_span: 2
 grid_options:
@@ -189,6 +225,25 @@ card:
       name: Steuerung / Modus
       icon: mdi:tune-variant
       layout: horizontal
+      card_mod:
+        style: |
+          ha-card {
+            background: rgba(0, 0, 0, 0.25) !important;
+            border-radius: 18px !important;
+            border: 1px solid rgba(255, 255, 255, 0.05) !important;
+            box-shadow: none !important;
+          }
+    - type: custom:button-card
+      show_name: false
+      show_icon: false
+      styles:
+        card:
+          - height: 2px
+          - background: transparent
+          - border: none
+          - box-shadow: none
+          - padding: 0
+          - margin: 0
     - type: custom:layout-card
       layout_type: grid
       layout:
@@ -200,21 +255,68 @@ card:
           name: Ladeleistung Set
           icon: mdi:battery-charging-high
           display_mode: slider
+          layout: horizontal
+          card_mod:
+            style: |
+              ha-card {
+                background: rgba(0, 0, 0, 0.25) !important;
+                border-radius: 18px !important;
+                border: 1px solid rgba(255, 255, 255, 0.05) !important;
+                box-shadow: none !important;
+              }
         - type: custom:mushroom-number-card
           entity: number.marstek_venus_modbus_maximale_entladeleistung
           name: Max Entladen
           icon: mdi:battery-arrow-up
           display_mode: slider
+          layout: horizontal
+          card_mod:
+            style: |
+              ha-card {
+                background: rgba(0, 0, 0, 0.25) !important;
+                border-radius: 18px !important;
+                border: 1px solid rgba(255, 255, 255, 0.05) !important;
+                box-shadow: none !important;
+              }
         - type: custom:mushroom-number-card
           entity: number.marstek_venus_modbus_maximale_ladeleistung
           name: Max Laden
           icon: mdi:battery-arrow-down
           display_mode: slider
+          layout: horizontal
+          card_mod:
+            style: |
+              ha-card {
+                background: rgba(0, 0, 0, 0.25) !important;
+                border-radius: 18px !important;
+                border: 1px solid rgba(255, 255, 255, 0.05) !important;
+                box-shadow: none !important;
+              }
         - type: custom:mushroom-number-card
           entity: number.marstek_venus_modbus_maximaler_soc
           name: Max SoC
           icon: mdi:battery-charging-100
           display_mode: slider
+          layout: horizontal
+          card_mod:
+            style: |
+              ha-card {
+                background: rgba(0, 0, 0, 0.25) !important;
+                border-radius: 18px !important;
+                border: 1px solid rgba(255, 255, 255, 0.05) !important;
+                box-shadow: none !important;
+              }
+    - type: custom:button-card
+      show_name: false
+      show_icon: false
+      styles:
+        card:
+          - height: 2px
+          - background: transparent
+          - border: none
+          - box-shadow: none
+          - padding: 0
+          - margin: 0
     - type: custom:layout-card
       layout_type: grid
       layout:
@@ -224,25 +326,31 @@ card:
         - type: custom:button-card
           entity: sensor.marstek_batterie_laden
           name: >
-            [[[ return parseFloat(entity.state) > 0 ? `Laden: ${entity.state}W` : "Laden"; ]]]
+            [[[ return parseFloat(entity.state) > 0 ? `Laden: ${entity.state}W`
+            : "Laden"; ]]]
           icon: mdi:battery-charging
           styles:
             card:
               - height: 90px
               - border-radius: 20px
               - background: >
-                  [[[ return parseFloat(entity.state) > 0 ? "linear-gradient(135deg,#00b894,#55efc4)" : "rgba(255,255,255,0.1)"; ]]]
+                  [[[ return parseFloat(entity.state) > 0 ?
+                  "linear-gradient(135deg,#00b894,#55efc4)" :
+                  "rgba(255,255,255,0.1)"; ]]]
         - type: custom:button-card
           entity: sensor.marstek_batterie_entladen
           name: >
-            [[[ return parseFloat(entity.state) > 0 ? `Entladen: ${entity.state}W` : "Entladen"; ]]]
+            [[[ return parseFloat(entity.state) > 0 ? `Entladen:
+            ${entity.state}W` : "Entladen"; ]]]
           icon: mdi:battery-charging
           styles:
             card:
               - height: 90px
               - border-radius: 20px
               - background: >
-                  [[[ return parseFloat(entity.state) > 0 ? "linear-gradient(135deg,#e17055,#fab1a0)" : "rgba(255,255,255,0.1)"; ]]]
+                  [[[ return parseFloat(entity.state) > 0 ?
+                  "linear-gradient(135deg,#e17055,#fab1a0)" :
+                  "rgba(255,255,255,0.1)"; ]]]
         - type: custom:button-card
           entity: sensor.marstek_venus_modbus_batterie_ladezustand
           name: |
@@ -266,7 +374,11 @@ card:
               - height: 90px
               - border-radius: 20px
               - background: |
-                  [[[ return (entity.state === 'Standby' || entity.state === '--') ? "rgba(255,255,255,0.1)" : "linear-gradient(135deg, #0984e3, #74b9ff)"; ]]]
+                  [[[ 
+                    return (entity.state === 'Standby' || entity.state === '--') 
+                      ? "rgba(255,255,255,0.1)" 
+                      : "linear-gradient(135deg, #0984e3, #74b9ff)"; 
+                  ]]]
     - type: custom:layout-card
       layout_type: grid
       layout:
@@ -279,64 +391,43 @@ card:
               entity: sensor.marstek_venus_modbus_ac_leistung
               primary: Leistung AC
               secondary: "{{ states(entity) }} W"
-            - type: custom:mushroom-template-card
-              entity: sensor.marstek_venus_modbus_ac_strom
-              primary: Strom AC
-              secondary: "{{ states(entity) }} A"
-            - type: custom:mushroom-template-card
-              entity: sensor.marstek_energie_laden_kwh
-              primary: Geladen Tag
-              secondary: "{{ states(entity) }} kWh"
-        - type: vertical-stack
-          cards:
-            - type: custom:mushroom-template-card
-              entity: sensor.marstek_venus_modbus_batterieleistung
-              primary: Leistung DC
-              secondary: "{{ states(entity) }} W"
-            - type: custom:mushroom-template-card
-              entity: sensor.marstek_venus_modbus_batteriestrom
-              primary: Strom DC
-              secondary: "{{ states(entity) }} A"
-            - type: custom:mushroom-template-card
-              entity: sensor.marstek_energie_entladen_kwh
-              primary: Entladen Tag
-              secondary: "{{ states(entity) }} kWh"
-        - type: vertical-stack
-          cards:
-            - type: custom:mushroom-template-card
-              entity: sensor.marstek_venus_modbus_ac_spannung
-              primary: Netz AC
-              secondary: "{{ states(entity) }} V"
-            - type: custom:mushroom-template-card
-              entity: sensor.marstek_venus_modbus_batteriespannung
-              primary: Spannung DC
-              secondary: "{{ states(entity) }} V"
-            - type: custom:mushroom-template-card
-              entity: sensor.marstek_venus_modbus_batterie_gesamtenergie
-              primary: Kapazität
-              secondary: "{{ states(entity) }} kWh"
-        - type: vertical-stack
-          cards:
-            - type: custom:mushroom-template-card
-              entity: sensor.marstek_venus_modbus_innentemperatur
-              primary: Temp. Innen
-              secondary: "{{ states(entity) }} °C"
-            - type: custom:mushroom-template-card
-              entity: sensor.marstek_venus_modbus_ac_frequenz
-              primary: AC Frequenz
-              secondary: "{{ states(entity) }} Hz"
-            - type: custom:mushroom-template-card
-              entity: sensor.marstek_venus_modbus_gesamt_roundtrip_effizienz
-              primary: Effizienz
-              secondary: "{{ states(entity) }} %"
+              icon: mdi:sine-wave
+              icon_color: purple
+              card_mod:
+                style: >
+                  ha-card { background: rgba(0,0,0,0.3) !important;
+                  border-radius: 1
+```
+Hui das war lang, sorry dafür ;) Hab ich noch was vergessen? Ach ja der
+
+☕ Support / Die Kaffeekasse
+
+  Angefangen hat alles mit einem optimistischen "Das kann doch nicht so schwer sein..." – Wochen später sitze ich hier mit rauchenden Modbus-Registern und einer Menge grauer Haare mehr.
+
+  Es war ein echter Kampf gegen die Growatt-Logik:
+
+  Den berüchtigten ID 1 Bug (astronomische Fehlwerte) besiegt.
+
+  Den nervigen Backflow-Fail und die 401-Abschaltungen eliminiert.
+
+  Das hektische An- und Ausschalten bei jeder kleinen Laständerung durch eine glatte mathematische Regelung ersetzt.
+
+  Wenn dir dieser Code den Kauf des Original-Zählers erspart hat – und vor allem die wochenlange Fehlersuche, die ich für dich schon erledigt habe – freue ich mich riesig über eine kleine Unterstützung für die nächste   Tasse Kaffee! Meine Nerven und mein Koffein-Spiegel danken es dir!
+
+  [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/varan81)
 
 
-</details>
 
-4. Node-RED: Der Emulator-Flow
 
-Importiere die in diesem Repository beiliegende flow.json Datei in dein Node-RED. Der Flow übernimmt die Kommunikation zwischen Home Assistant und dem RS485-Stick.
 
-☕ Support / Kaffeekasse
+  ⚖️ Haftungsausschluss (Disclaimer)
 
-Dieses Projekt hat Wochen an Analyse, Modbus-Debugging und Fehlersuche erfordert. Wenn dir dieser Code hunderte Euro für Original-Hardware erspart hat, freue ich mich riesig über eine kleine Unterstützung!
+Dieses Projekt ist im Rahmen einer privaten Installation entstanden und dient rein zu Dokumentations- und Informationszwecken.
+
+    Nutzung auf eigene Gefahr: Die Umsetzung der hier beschriebenen Inhalte erfolgt ausschließlich auf eigenes Risiko. Ich übernehme keinerlei Haftung für Schäden an Hardware (Wechselrichter, Batterien, etc.), Software oder für Folgeschäden.
+
+    Keine Garantie: Es gibt keine Gewährleistung auf Richtigkeit, Vollständigkeit oder Funktionalität der Skripte.
+
+    Elektrotechnik: Arbeiten am 230V-Netz dürfen in Deutschland nur von zertifiziertem Fachpersonal durchgeführt werden. Achte stets auf die Einhaltung deiner lokalen Vorschriften und Sicherheitsbestimmungen.
+
+Kurz gesagt: Bei mir läuft das System seit Wochen stabil und schont die Hardware – aber was du mit deinem Wechselrichter machst, ist deine Entscheidung! 😉
