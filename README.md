@@ -33,13 +33,13 @@ Dieser Lösungsansatz nutzt **Node-RED**, um dem Wechselrichter über einen einf
 
 * **Home Assistant Server:** HP t630 Thin Client
 * **Wechselrichter:** Growatt MIC 1500TL-X
-  👉 **[Growatt MIC 1500 auf Amazon ansehen](https://amzn.to/4bcaEP3)** *(Affiliate-Link)*
+  👉 **[Growatt MIC 1500 auf Amazon ansehen](https://amzn.to/4bcaEP3)
 * **Batteriespeicher:** Marstek Venus E 3.0 (für maximale Stabilität per **LAN** ins Netzwerk eingebunden)
-  👉 **[Marstek Speicher auf Amazon ansehen](https://amzn.to/4cPGQZN)** *(Affiliate-Link)*
+  👉 **[Marstek Speicher auf Amazon ansehen](https://amzn.to/4cPGQZN)
 * **Haus-Smartmeter:** Shelly Pro 3EM (ebenfalls per **LAN** verbunden)
-  👉 **[Shelly Pro 3EM auf Amazon ansehen](https://amzn.to/3PmjXTX)** *(Affiliate-Link)*
+  👉 **[Shelly Pro 3EM auf Amazon ansehen](https://amzn.to/3PmjXTX)
 * **Modbus-Adapter:** RS485 zu USB Stick
-  👉 **[Empfohlener RS485 zu USB Adapter auf Amazon](https://amzn.to/4rwb8EE)** *(Affiliate-Link)*
+  👉 **[Empfohlener RS485 zu USB Adapter auf Amazon](https://amzn.to/4rwb8EE)
 
 *💡 Profi-Tipp zur Software:* Für die perfekte Einbindung und Steuerung des Akkus in Home Assistant empfehle ich dringend die **Marstek Venus Modbus** Integration (verfügbar über HACS). Damit harmoniert dieses Setup am besten!
 
