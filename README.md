@@ -51,6 +51,26 @@ Die Verbindung ist extrem simpel. Der Growatt hat unten einen "SYS" (System) Mod
 * Stecke den USB-Stick in deinen Home Assistant Server (HP t630).
 
 ---
+🇬🇧 **English Summary (For International Users)**
+
+### 100% Software Zero-Export for Growatt MIC & Marstek Venus (NO EEPROM Wear)
+
+**The Problem:** Standard Modbus zero-export scripts constantly write the power limit to the inverter's holding registers. Doing this every second will physically destroy the EEPROM flash memory of your Growatt inverter within weeks (resulting in Error 417).
+        
+**The Solution:** This Home Assistant & Node-RED flow **emulates an Eastron SDM630 smart meter** on Modbus ID 2. We only send volatile meter data to the inverter's RAM. The inverter regulates itself naturally based on the simulated grid data. **Zero hardware wear, 100% safe.**
+
+**Key Features:**
+* **Smart Charging:** Charges the Marstek battery with full power (1500W) up to 100% SoC, then automatically switches to true Zero-Export to cover your house load.
+* **ID 1 Bug Fix:** Filters out the notorious Modbus communication bug (no more 214 million kWh spikes in your dashboard).
+* **Power Smoothing:** Mathematical smoothing to prevent inverter oscillation during sudden load changes (e.g., fridge compressors).
+
+**Requirements:**
+* Home Assistant with Node-RED Add-on
+* USB-RS485 Dongle connected to the inverter's Modbus port
+* Smart Meter reading your house load (e.g., Shelly Pro 3EM)
+
+*Note: The detailed step-by-step guide below is in German, but the provided YAML helpers and the Node-RED `flow.json` are universal. Just import the flow into Node-RED and adjust your specific MQTT/Modbus nodes!*
+---
 
 ## 🚀 Schritt-für-Schritt Anleitung
 
