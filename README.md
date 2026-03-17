@@ -61,7 +61,7 @@ Die Verbindung ist extrem simpel. Der Growatt hat unten einen "SYS" (System) Mod
 
 **Key Features:**
 * **Smart Charging:** Charges the Marstek battery with full power (1500W) up to 100% SoC, then automatically switches to true Zero-Export to cover your house load.
-* **ID 1 Bug Fix:** Filters out the notorious Modbus communication bug (no more 214 million kWh spikes in your dashboard).
+* **ID 1 Bug Fix:** Filters out the notorious Modbus communication bug.
 * **Power Smoothing:** Mathematical smoothing to prevent inverter oscillation during sudden load changes (e.g., fridge compressors).
 
 **Requirements:**
