@@ -435,6 +435,8 @@ card:
                   ha-card { background: rgba(0,0,0,0.3) !important;
                   border-radius: 1
 ```
+### Schritt 5 (Optionales Feintuning): siehe weiter unten bei den Updates
+
 Hui das war lang, sorry dafür ;) Hab ich noch was vergessen? Ach ja der
 
 ☕ Support / Die Kaffeekasse
@@ -454,7 +456,72 @@ Hui das war lang, sorry dafür ;) Hab ich noch was vergessen? Ach ja der
   [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/varan81)
 
 
+## 📅 Updates / Changelog
 
+* **18.03.2026:** * **Neue Visualisierungen:** Screenshots des Home Assistant Dashboards und der Node-RED Flow-Struktur zur besseren Nachvollziehbarkeit hinzugefügt.
+  * **Neues Kapitel "Feintuning":** Optionale Home Assistant Automatisierung ergänzt, um bei vollem Akku ein leichtes Aufschwingen der Regelung ("Ping-Pong-Effekt") zu verhindern.
+
+## 🏓 Feintuning: Ping-Pong Effekt bei 100% Akku verhindern (Testphase)
+
+Wenn die Batterie 100% SoC erreicht, kann es passieren, dass der Wechselrichter und die Batterie anfangen, minimal gegeneinander zu regeln. 
+**Keine Sorge: Dieser Effekt ist technisch nicht gravierend!** Das System funktioniert trotzdem sicher und zuverlässig. Es braucht bei größeren Lastwechseln im Haus lediglich ein paar Sekunden länger, bis sich die Nulleinspeisung wieder sauber eingepegelt hat.
+
+Wer jedoch ein perfekt ruhiges Dashboard und eine sofortige Ausregelung möchte, kann Home Assistant die Rolle des "Schiedsrichters" übergeben:
+Die Batterie wird bei 100% in den `manual` Modus gezwungen (friert ein) und überlässt dem Growatt die Nulleinspeisung. Erst wenn das Haus für mehr als 30 Sekunden über 50W aus dem Netz zieht, wird die Batterie wieder in den `anti_feed` Modus aufgeweckt.
+
+Füge dafür diesen Code in Home Assistant als neue Automatisierung (im YAML-Modus) ein:
+```yaml
+alias: "Marstek Ping-Pong Schutz (Manual Timer)"
+description: >-
+  Verhindert das Aufschwingen von Growatt und Marstek. Schaltet den Akku bei 100% auf manuell und weckt ihn erst nach 30 Sekunden Netzbezug wieder im Anti-Feed Modus auf.
+mode: single
+trigger:
+  # Auslöser 1: Akku ist knallvoll
+  - platform: numeric_state
+    entity_id: sensor.marstek_venus_modbus_batterie_ladezustand
+    above: 99
+    id: akku_voll
+    
+  # Auslöser 2: Haus zieht mehr als 50W für 30 Sekunden
+  - platform: numeric_state
+    entity_id: sensor.shellypro3em_leistung
+    above: 50
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 30
+    id: strom_wird_gebraucht
+
+condition: []
+
+action:
+  - choose:
+      # Aktion 1: Akku voll -> Ab in den manuellen Modus
+      - conditions:
+          - condition: trigger
+            id: akku_voll
+        sequence:
+          - action: select.select_option
+            target:
+              entity_id: select.marstek_venus_modbus_modus
+            data:
+              option: "manual" 
+              
+      # Aktion 2: Strom wird gebraucht -> Wieder auf Anti-Feed
+      - conditions:
+          - condition: trigger
+            id: strom_wird_gebraucht
+          # Kleine Sicherheit: Nur wecken, wenn der Akku nicht komplett leer ist
+          - condition: numeric_state
+            entity_id: sensor.marstek_venus_modbus_batterie_ladezustand
+            above: 5
+        sequence:
+          - action: select.select_option
+            target:
+              entity_id: select.marstek_venus_modbus_modus
+            data:
+              option: "anti_feed"
+```
 
 
   ⚖️ Haftungsausschluss (Disclaimer)
