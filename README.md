@@ -165,11 +165,16 @@ Diese Automatisierung ist das Herzstück der Anlage. Sie steuert dynamisch, wie 
 
 ### 3. Node-RED: Der Emulator-Flow
 
+<img width="793" height="295" alt="Screenshot (236)" src="https://github.com/user-attachments/assets/452f594d-9fec-416c-a971-6576927c58ae" />
+
 Importiere die in diesem Repository beiliegende flow.json Datei in dein Node-RED.
 Der Flow liest alle 5 Sekunden die input_number.fake_sdm_power aus Home Assistant aus, bereitet die Daten mathematisch für 3 Phasen auf und antwortet dem Growatt in perfektem Eastron-Modbus-Hexadezimalcode.
 Vergiss nicht, im Node-RED Flow den richtigen USB-Port für deinen RS485-Stick auszuwählen!
 
 ### 4. Das Marstek Steuerungs-Dashboard (Optional)
+
+<img width="1110" height="765" alt="Screenshot (250)" src="https://github.com/user-attachments/assets/cb422a58-d301-4081-9477-9abad7363eef" />
+
 
 Als Option ist hier der YAML-Code für eine "hochmoderne" ;), im Glas-Design gehaltene Home Assistant Dashboard-Karte, mit der du den Marstek-Akku überwachen und steuern kannst (benötigt Mushroom Cards, Card-Mod und Stack-in-Card via HACS). Tablet und Handy kompatibel
 
