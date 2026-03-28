@@ -36,3 +36,11 @@ This project took countless hours of reverse-engineering and testing to prevent 
 
 ---
 *Happy tinkering and enjoy your free solar energy! ☀️*
+
+
+
+## ⚠️ Reality Check & Disclaimer (Grid Leakage)
+While this software aims for a perfect zero-export, physics and Modbus polling intervals (usually 1-2 seconds) dictate that a mathematically perfect 100% zero-export is impossible in a grid-tied setup. 
+
+When a heavy load (like an A/C, microwave, or kettle) suddenly turns off, the inverter needs a split second to adjust its output. During this brief window, a tiny amount of power *will* leak into the public grid (Grid Leakage / Spillover). 
+If you are running a "guerrilla" or "stealth" solar setup and your local utility's smart meter is strictly configured to flag *any* backfeeding, please be aware of this. Use this software at your own risk!
