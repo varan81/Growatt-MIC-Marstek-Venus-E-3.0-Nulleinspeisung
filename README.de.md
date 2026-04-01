@@ -440,6 +440,8 @@ Hui das war lang, sorry dafür ;) Hab ich noch was vergessen? Ach ja der
 
 ## 📅 Updates / Changelog
 
+* **01.04.2026:** * **Anti-Schwingungs-Update (Flow Smoothing):** Der Node-RED Flow (`flow.json`) wurde massiv optimiert, um ein Regelschwingen (Oszillieren / "Ping-Pong-Effekt") des Wechselrichters bei schnellen Lastwechseln im Haus zu verhindern. Im Node *"Echtzeit 3-Phasen Mathematik"* sorgt nun ein integrierter gleitender Mittelwert (`alpha = 0.9`) dafür, dass harte Spitzen sanft geglättet werden. Dies stabilisiert die Nulleinspeisung extrem, ohne die Reaktionszeit spürbar zu beeinträchtigen.
+
 * **18.03.2026:** * **Neue Visualisierungen:** Screenshots des Home Assistant Dashboards und der Node-RED Flow-Struktur zur besseren Nachvollziehbarkeit hinzugefügt.
   * **Neues Kapitel "Feintuning":** Optionale Home Assistant Automatisierung ergänzt, um bei vollem Akku ein leichtes Aufschwingen der Regelung ("Ping-Pong-Effekt") zu verhindern.
 
