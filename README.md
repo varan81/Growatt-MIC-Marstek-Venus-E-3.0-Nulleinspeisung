@@ -37,6 +37,76 @@ This project took countless hours of reverse-engineering and testing to prevent 
 ---
 *Happy tinkering and enjoy your free solar energy! ☀️*
 
+## 📅 Updates / Changelog
+
+* **01.04.2026:** * **Anti-Oscillation Update (Flow Smoothing):** The Node-RED flow (`flow.json`) has been massively optimized to prevent the inverter from oscillating ("ping-pong effect") during rapid load changes in the house. The *"Echtzeit 3-Phasen Mathematik"* node now includes an integrated moving average (`alpha = 0.9`) to gently smooth out hard spikes. This heavily stabilizes the zero-export control without noticeably affecting the response time.
+
+* **18.03.2026:** * **New Visualizations:** Added screenshots of the Home Assistant dashboard and the Node-RED flow structure for better traceability.
+  * **New Chapter "Fine-Tuning":** Added an optional Home Assistant automation to prevent a slight oscillation of the control loop ("ping-pong effect") when the battery is full.
+
+## 🏓 Fine-Tuning: Prevent Ping-Pong Effect at 100% Battery (Testing Phase)
+
+When the battery reaches 100% SoC, the inverter and the battery might start to slightly regulate against each other. 
+**Don't worry: This effect is not technically severe!** The system still operates safely and reliably. It just takes a few seconds longer for the zero-export to level out smoothly after major load changes in the house.
+
+However, if you want a perfectly calm dashboard and immediate regulation, you can let Home Assistant play the "referee":
+The battery is forced into `manual` mode at 100% (freezing its state) and leaves the zero-export completely to the Growatt. Only when the house draws more than 50W from the grid for over 30 seconds, the battery is woken up and set back to `anti_feed` mode.
+
+To achieve this, add the following code to Home Assistant as a new automation (in YAML mode):
+
+```yaml
+alias: "Marstek Ping-Pong Protection (Manual Timer)"
+description: >-
+  Prevents the Growatt and Marstek from oscillating. Switches the battery to manual at 100% and wakes it back up in Anti-Feed mode only after 30 seconds of grid consumption.
+mode: single
+trigger:
+  # Trigger 1: Battery is completely full
+  - platform: numeric_state
+    entity_id: sensor.marstek_venus_modbus_batterie_ladezustand
+    above: 99
+    id: battery_full
+    
+  # Trigger 2: House draws more than 50W for 30 seconds
+  - platform: numeric_state
+    entity_id: sensor.shellypro3em_leistung
+    above: 50
+    for:
+      hours: 0
+      minutes: 0
+      seconds: 30
+    id: power_needed
+
+condition: []
+
+action:
+  - choose:
+      # Action 1: Battery full -> Switch to manual mode
+      - conditions:
+          - condition: trigger
+            id: battery_full
+        sequence:
+          - action: select.select_option
+            target:
+              entity_id: select.marstek_venus_modbus_modus
+            data:
+              option: "manual" 
+              
+      # Action 2: Power needed -> Revert to Anti-Feed
+      - conditions:
+          - condition: trigger
+            id: power_needed
+          # Small safeguard: Only wake up if the battery is not completely empty
+          - condition: numeric_state
+            entity_id: sensor.marstek_venus_modbus_batterie_ladezustand
+            above: 5
+        sequence:
+          - action: select.select_option
+            target:
+              entity_id: select.marstek_venus_modbus_modus
+            data:
+              option: "anti_feed"
+```
+
 
 
 ## ⚠️ Reality Check & Disclaimer (Grid Leakage)
