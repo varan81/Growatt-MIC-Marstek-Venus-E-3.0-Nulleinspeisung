@@ -8,6 +8,9 @@ Standard Modbus zero-export scripts constantly write the power limit to the inve
 ## 💡 The Solution: SDM630 Emulation
 This Home Assistant & Node-RED flow emulates an Eastron SDM630 smart meter on Modbus ID 2. We only send volatile meter data to the inverter's RAM. The inverter regulates itself naturally based on the simulated grid data. **Zero hardware wear, 100% safe.**
 
+## 📌 Current Project Status (April 2026)
+
+**The core system is completely stable and actively running in production.** We are currently fine-tuning the details, partly driven by community feedback. This specifically includes optimizing the mathematical smoothing (control speed and deadbands) to perfectly harmonize the interaction between the inverter's inherent latency and the fast reaction times of AC-coupled battery systems (like the Marstek).
 
 ## ✨ Key Features
 * **Smart Charging:** Charges the Marstek battery with full power (1500W) up to 100% SoC, then automatically switches to true Zero-Export to cover your house load.
