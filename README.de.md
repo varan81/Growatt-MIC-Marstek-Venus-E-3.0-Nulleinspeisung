@@ -4,7 +4,11 @@
 
 Dieses Projekt ermöglicht eine echte, dynamische Nulleinspeisung für **Growatt Wechselrichter (MIC-Serie)** in Kombination mit dem **Marstek Venus E 3.0** Batteriespeicher, **OHNE** den teuren Original-Zähler (Eastron/Chint) und **OHNE Eingriffe in das EEPROM** oder das Flashen von Mikrocontrollern.
 
-⚠️ Warum die Software-Lösung (Emulator) sicherer ist
+## 📌 Aktueller Projektstatus (April 2026)
+
+**Das Grundsystem läuft absolut stabil und ist im produktiven Einsatz.** Aktuell wird – auch durch Feedback aus der Community – noch an den Feinheiten gefeilt. Dazu gehört insbesondere die Optimierung des mathematischen Smoothings (Regelgeschwindigkeit), um das Zusammenspiel zwischen der Trägheit des Wechselrichters und der Reaktionsgeschwindigkeit von AC-Speichern (wie dem Marstek) noch harmonischer abzustimmen.
+
+## ⚠️ Warum die Software-Lösung (Emulator) sicherer ist
 
 Die meisten bisherigen Ansätze zur Nulleinspeisung versuchen, die Leistung des Growatt-Wechselrichters direkt über Modbus-Register zu drosseln. Das ist aus zwei Gründen brandgefährlich:
 
