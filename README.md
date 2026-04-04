@@ -10,7 +10,9 @@ This Home Assistant & Node-RED flow emulates an Eastron SDM630 smart meter on Mo
 
 ## 📌 Current Project Status (April 2026)
 
-**The core system is completely stable and actively running in production.** We are currently fine-tuning the details, partly driven by community feedback. This specifically includes optimizing the mathematical smoothing (control speed and deadbands) to perfectly harmonize the interaction between the inverter's inherent latency and the fast reaction times of AC-coupled battery systems (like the Marstek).
+**We are making excellent progress!** The core system runs absolutely stable and is already successfully in production use. 
+
+Currently – also thanks to valuable feedback and testing from the community – we are fine-tuning the final details. This specifically includes the ongoing optimization of the new PI controller (response time and offset buffer). The main goal is to make the interaction between the network- and hardware-induced inertia of the Growatt inverter and the lightning-fast response time of AC battery systems (like the Marstek) even more harmonious and efficient.
 
 ## ✨ Key Features
 * **Smart Charging:** Charges the Marstek battery with full power (1500W) up to 100% SoC, then automatically switches to true Zero-Export to cover your house load.
@@ -42,20 +44,39 @@ This project took countless hours of reverse-engineering and testing to prevent 
 
 ## 📅 Updates / Changelog
 
-* **01.04.2026:** * **Anti-Oscillation Update (Flow Smoothing):** The Node-RED flow (`flow.json`) has been massively optimized to prevent the inverter from oscillating ("ping-pong effect") during rapid load changes in the house. The *"Echtzeit 3-Phasen Mathematik"* node now includes an integrated moving average (`alpha = 0.9`) to gently smooth out hard spikes. This heavily stabilizes the zero-export control without noticeably affecting the response time.
+* **04.04.2026:** * **🚀 PI Controller & Latency Compensation (Anti-Oscillation Update v2):** The simple smoothing from the previous update has been replaced by a real, intelligent PI controller with anti-windup protection in the *"Echtzeit 3-Phasen Mathematik"* node. This solves the problem of network latency (Shelly -> WLAN -> HA -> Node-RED), which previously threw the internal controller of the Growatt off balance during hard load changes (e.g., turning off the kettle).
+  * **New Offset Buffer ("Shock Absorber"):** Using the new variable `mein_puffer` (default: 40W), the system now intentionally aims for a minimal grid consumption. This catches the overshooting when turning off large loads and effectively prevents unwanted export peaks into the power grid.
+  * **Important Timing Updates:** The inject node of the Modbus server in Node-RED must be set to 0.25 seconds for a stable data bus. (Note: The `automations.yaml` in the repository has also been updated for the new and faster state trigger).
+  * **New Flow:** The file `flow.json` has been completely replaced by the new, final version and can simply be imported as a whole.
 
-* **18.03.2026:** * **New Visualizations:** Added screenshots of the Home Assistant dashboard and the Node-RED flow structure for better traceability.
-  * **New Chapter "Fine-Tuning":** Added an optional Home Assistant automation to prevent a slight oscillation of the control loop ("ping-pong effect") when the battery is full.
+* **01.04.2026:** * **Anti-Oscillation Update (Flow Smoothing):** The Node-RED flow (`flow.json`) has been massively optimized to prevent control oscillation ("ping-pong effect") of the inverter during fast load changes in the house. In the *"Echtzeit 3-Phasen Mathematik"* node, an integrated moving average (`alpha = 0.9`) now ensures that hard peaks are gently smoothed out. This extremely stabilizes the zero-export control without noticeably affecting the response time.
 
-## 🏓 Fine-Tuning: Prevent Ping-Pong Effect at 100% Battery (Testing Phase)
+* **18.03.2026:** * **New Visualizations:** Added screenshots of the Home Assistant dashboard and the Node-RED flow structure for better comprehensibility.
+  * **New Chapter "Fine-Tuning":** Added an optional Home Assistant automation to prevent a slight oscillation of the control ("ping-pong effect") when the battery is full.
 
-When the battery reaches 100% SoC, the inverter and the battery might start to slightly regulate against each other. 
-**Don't worry: This effect is not technically severe!** The system still operates safely and reliably. It just takes a few seconds longer for the zero-export to level out smoothly after major load changes in the house.
+## 🏓 Fine-Tuning: Adapting the System to Your Home
 
-However, if you want a perfectly calm dashboard and immediate regulation, you can let Home Assistant play the "referee":
-The battery is forced into `manual` mode at 100% (freezing its state) and leaves the zero-export completely to the Growatt. Only when the house draws more than 50W from the grid for over 30 seconds, the battery is woken up and set back to `anti_feed` mode.
+### 1. Adjusting the Controller in Node-RED (Real-Time Math)
+Every home network has slightly different latency (delay). If your Growatt still overshoots slightly or ramps up too slowly during fast, hard load changes (e.g., when turning off the kettle), you can perfectly tailor the software to your setup. 
 
-To achieve this, add the following code to Home Assistant as a new automation (in YAML mode):
+To do this, double-click the **"Echtzeit 3-Phasen Mathematik"** node in Node-RED. Right at the beginning of the code (`PHASE 2`), you will find these four parameters:
+
+* **`mein_puffer = 40;` (The Shock Absorber):** Target value for grid consumption in watts. Forces the Growatt to intentionally draw a minimal amount of power from the grid. Prevents it from accidentally dropping into the negative (grid export) due to network latency when large loads are turned off. (Tip: 40W - 80W are safe values).
+* **`Kp = 0.4;` (The Response Speed):** Determines how hard the controller reacts immediately to changes. Increase (e.g., `0.5`) if the Growatt ramps up too slowly. Decrease (e.g., `0.3`) if the system "jitters" too restlessly.
+* **`Ki = 0.05;` (The Accuracy):** The fine adjustment over time. Ensures that the target buffer is actually reached exactly after a few seconds.
+* **`maxIntegral = 1000;` (The Emergency Brake / Anti-Windup):** Prevents the controller from building up a huge "error memory" during long, high loads (e.g., oven) and taking ages to lower the power again when turned off.
+
+---
+
+### 2. Preventing Ping-Pong Effect at 100% Battery (Testing Phase)
+
+When the battery reaches 100% SoC, it can happen that the inverter and the battery start to minimally regulate against each other. 
+**Don't worry: This effect is not technically severe!** The system still works safely and reliably. It just takes a few seconds longer for the zero-export control to level out smoothly again during larger load changes in the house.
+
+However, if you want a perfectly quiet dashboard and immediate regulation, you can hand over the role of "referee" to Home Assistant:
+The battery is forced into `manual` mode at 100% (freezes) and leaves the zero-export control to the Growatt. Only when the house draws more than 50W from the grid for more than 30 seconds is the battery woken up again into `anti_feed` mode.
+
+To do this, add this code in Home Assistant as a new automation (in YAML mode):
 
 ```yaml
 alias: "Marstek Ping-Pong Protection (Manual Timer)"
