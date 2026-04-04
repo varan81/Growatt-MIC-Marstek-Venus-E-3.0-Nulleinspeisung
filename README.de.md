@@ -6,7 +6,9 @@ Dieses Projekt ermöglicht eine echte, dynamische Nulleinspeisung für **Growatt
 
 ## 📌 Aktueller Projektstatus (April 2026)
 
-**Das Grundsystem läuft absolut stabil und ist im produktiven Einsatz.** Aktuell wird – auch durch Feedback aus der Community – noch an den Feinheiten gefeilt. Dazu gehört insbesondere die Optimierung des mathematischen Smoothings (Regelgeschwindigkeit), um das Zusammenspiel zwischen der Trägheit des Wechselrichters und der Reaktionsgeschwindigkeit von AC-Speichern (wie dem Marstek) noch harmonischer abzustimmen.
+**Wir sind auf einem extrem guten Weg!** Das Grundsystem läuft absolut stabil und befindet sich bereits erfolgreich im produktiven Einsatz. 
+
+Aktuell wird – auch durch das wertvolle Feedback und die Tests aus der Community – noch an den letzten Feinheiten gefeilt. Dazu gehört insbesondere die laufende Optimierung der neuen PI-Regelung (Reaktionsgeschwindigkeit und Offset-Puffer). Das große Ziel ist es, das Zusammenspiel zwischen der netzwerk- und hardwarebedingten Trägheit des Growatt-Wechselrichters und der blitzschnellen Reaktionszeit von AC-Speichern (wie dem Marstek) noch harmonischer und effizienter abzustimmen.
 
 ## ⚠️ Warum die Software-Lösung (Emulator) sicherer ist
 
@@ -96,8 +98,8 @@ description: >-
   Regelt den Growatt via Node-RED. Nulleinspeisung bei manual Modus oder vollem
   Akku im anti_feed Modus.
 triggers:
-  - seconds: /1
-    trigger: time_pattern
+  - trigger: state
+    entity_id: sensor.shellypro3em_leistung
 conditions: []
 actions:
   - action: input_number.set_value
@@ -444,12 +446,31 @@ Hui das war lang, sorry dafür ;) Hab ich noch was vergessen? Ach ja der
 
 ## 📅 Updates / Changelog
 
+* **04.04.2026:** * ** PI-Regler & Latenz-Kompensation (Anti-Schwingungs-Update v2):** Die einfache Glättung aus dem vorherigen Update wurde durch einen echten, intelligenten PI-Regler mit Anti-Windup-Schutz im Node *"Echtzeit 3-Phasen Mathematik"* ersetzt. Dies löst das Problem der Netzwerklatenz (Shelly -> WLAN -> HA -> Node-RED), die den internen Regler des Growatt bei harten Lastwechseln (z. B. Wasserkocher) bisher aus dem Tritt gebracht hat.
+  * **Neuer Offset-Puffer ("Stoßdämpfer"):** Über die neue Variable `mein_puffer` (Standard: 40W) zielt das System nun absichtlich auf einen minimalen Netzbezug ab. Das fängt das Überschwingen beim Abschalten großer Lasten ab und verhindert effektiv ungewollte Einspeisungs-Spitzen in das Stromnetz.
+  * **Wichtige Timing-Updates:** Der Inject-Node des Modbus-Servers in Node-RED muss für einen stabilen Datenbus auf 0,25 Sekunden gestellt werden. (Hinweis: Die `automations.yaml` wurde im Repository ebenfalls für den neuen und schnelleren State-Trigger aktualisiert).
+  * **Neuer Flow:** Die Datei `flow.json` wurde komplett durch die neue, finale Version ersetzt und kann einfach im Ganzen neu importiert werden.
+
 * **01.04.2026:** * **Anti-Schwingungs-Update (Flow Smoothing):** Der Node-RED Flow (`flow.json`) wurde massiv optimiert, um ein Regelschwingen (Oszillieren / "Ping-Pong-Effekt") des Wechselrichters bei schnellen Lastwechseln im Haus zu verhindern. Im Node *"Echtzeit 3-Phasen Mathematik"* sorgt nun ein integrierter gleitender Mittelwert (`alpha = 0.9`) dafür, dass harte Spitzen sanft geglättet werden. Dies stabilisiert die Nulleinspeisung extrem, ohne die Reaktionszeit spürbar zu beeinträchtigen.
 
 * **18.03.2026:** * **Neue Visualisierungen:** Screenshots des Home Assistant Dashboards und der Node-RED Flow-Struktur zur besseren Nachvollziehbarkeit hinzugefügt.
   * **Neues Kapitel "Feintuning":** Optionale Home Assistant Automatisierung ergänzt, um bei vollem Akku ein leichtes Aufschwingen der Regelung ("Ping-Pong-Effekt") zu verhindern.
 
-## 🏓 Feintuning: Ping-Pong Effekt bei 100% Akku verhindern (Testphase)
+## 🏓 Feintuning: Das System an dein Zuhause anpassen
+
+### 1. Den Regler in Node-RED einstellen (Echtzeit Mathematik)
+Jedes Heimnetzwerk hat eine etwas andere Latenz (Verzögerung). Falls dein Growatt bei schnellen, harten Lastwechseln (z.B. beim Ausschalten des Wasserkochers) noch leicht überschwingt oder zu langsam hochfährt, kannst du die Software perfekt auf dein Setup abstimmen. 
+
+Mache dazu in Node-RED einen Doppelklick auf den Node **"Echtzeit 3-Phasen Mathematik"**. Direkt am Anfang des Codes (`PHASE 2`) findest du diese vier Stellschrauben:
+
+* **`mein_puffer = 40;` (Der Stoßdämpfer):** Zielwert für den Netzbezug in Watt. Zwingt den Growatt, absichtlich minimalen Strom aus dem Netz zu ziehen. Verhindert, dass er durch Netzwerklatenz beim Abschalten großer Lasten versehentlich ins Minus (Einspeisung) stürzt. (Tipp: 40W - 80W sind sichere Werte).
+* **`Kp = 0.4;` (Die Reaktionsgeschwindigkeit):** Bestimmt, wie hart der Regler sofort auf Änderungen reagiert. Erhöhen (z. B. `0.5`), wenn der Growatt zu langsam hochfährt. Senken (z. B. `0.3`), wenn das System zu unruhig "zittert".
+* **`Ki = 0.05;` (Die Genauigkeit):** Das feine Nachjustieren über die Zeit. Sorgt dafür, dass der Ziel-Puffer nach ein paar Sekunden auch wirklich exakt erreicht wird.
+* **`maxIntegral = 1000;` (Die Notbremse / Anti-Windup):** Verhindert, dass sich der Regler bei langen, hohen Lasten (z. B. Backofen) einen riesigen "Fehler-Speicher" aufbaut und beim Ausschalten ewig braucht, um die Leistung wieder zu senken.
+
+---
+
+### 2. Ping-Pong Effekt bei 100% Akku verhindern (Testphase)
 
 Wenn die Batterie 100% SoC erreicht, kann es passieren, dass der Wechselrichter und die Batterie anfangen, minimal gegeneinander zu regeln. 
 **Keine Sorge: Dieser Effekt ist technisch nicht gravierend!** Das System funktioniert trotzdem sicher und zuverlässig. Es braucht bei größeren Lastwechseln im Haus lediglich ein paar Sekunden länger, bis sich die Nulleinspeisung wieder sauber eingepegelt hat.
