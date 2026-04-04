@@ -53,8 +53,8 @@ Dieser Lösungsansatz nutzt **Node-RED**, um dem Wechselrichter über einen einf
 
 ### 🔌 Verkabelung (Growatt zu USB-Stick)
 Die Verbindung ist extrem simpel. Der Growatt hat unten einen "SYS" (System) Modbus-Anschluss.
-* Verbinde **Pin 3** (RS485A) des Growatt-Steckers mit **A+** am USB-Stick.
-* Verbinde **Pin 4** (RS485B) des Growatt-Steckers mit **B-** am USB-Stick.
+* Verbinde **Pin 7** (RS485A) des Growatt-Steckers mit **A+** am USB-Stick.
+* Verbinde **Pin 8** (RS485B) des Growatt-Steckers mit **B-** am USB-Stick.
 * Also die gleichen Pins, die auch ein Eastron benutzt.
 * Stecke den USB-Stick in deinen Home Assistant Server (HP t630).
 
