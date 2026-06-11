@@ -264,7 +264,7 @@ Hui das war lang, sorry dafür ;) Hab ich noch was vergessen? Ach ja der
 
   Wenn dir dieser Code den Kauf des Original-Zählers erspart hat – und vor allem die wochenlange Fehlersuche, die ich für dich schon erledigt habe – freue ich mich riesig über eine kleine Unterstützung für die nächste   Tasse Kaffee! Meine Nerven und mein Koffein-Spiegel danken es dir!
 
-  [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/varan81)
+  <a href="https://www.buymeacoffee.com/varan81" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 50px !important;width: 200px !important;" ></a>
 
 
 ## 📅 Updates / Changelog
