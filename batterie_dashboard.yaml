@@ -1,0 +1,1083 @@
+type: custom:mod-card
+column_span: 2
+grid_options:
+  columns: 24
+card_mod:
+  style: |
+    ha-card {
+      border: 1px solid rgba(255,255,255,0.1) !important;
+      box-shadow: none !important;
+      background: rgba(0,0,0,0.18) !important;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 26px !important;
+      padding: 20px !important;
+      color: rgba(255,255,255,0.95) !important;
+    }
+card:
+  type: custom:stack-in-card
+  mode: vertical
+  card_mod:
+    style: |
+      ha-card {
+        border: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+      }
+  cards:
+    - type: custom:button-card
+      entity: sensor.marstek_venus_modbus_wechselrichter_status
+      show_name: false
+      show_state: false
+      show_icon: false
+      show_label: true
+      label: |
+        [[[
+          const status   = entity?.state ?? 'Unbekannt';
+          const wlan     = states['binary_sensor.marstek_venus_modbus_wlan_status']?.state === 'on';
+          const mode     = states['select.marstek_venus_modbus_modus']?.state ?? '—';
+          const soc      = parseFloat(states['sensor.marstek_venus_modbus_batterie_ladezustand']?.state || 0);
+          const laden    = parseFloat(states['sensor.marstek_batterie_laden']?.state || 0);
+          const entladen = parseFloat(states['sensor.marstek_batterie_entladen']?.state || 0);
+          const isCharging    = laden > 0;
+          const isDischarging = entladen > 0;
+          const isCritical    = soc < 10;
+          const isFull        = soc > 95;
+
+          const isNulleinspeisung = mode === 'anti_feed';
+          const modeText  = isNulleinspeisung ? 'Nulleinspeisung' : mode === 'manual' ? 'Manuell' : 'Trade Mode';
+          const modeColor = isNulleinspeisung ? '#00ff88' : 'rgba(255,255,255,0.9)';
+          const modeBg    = isNulleinspeisung ? 'rgba(0,255,136,0.15)' : 'rgba(255,255,255,0.06)';
+          const modeBorder= isNulleinspeisung ? 'rgba(0,255,136,0.4)' : 'rgba(255,255,255,0.15)';
+
+          const socColor  = isCritical ? '#E24B4A' : soc < 40 ? '#EF9F27' : '#1D9E75';
+          const socBg     = isCritical ? 'rgba(226,75,74,0.15)' : soc < 40 ? 'rgba(239,159,39,0.15)' : 'rgba(29,158,117,0.15)';
+          const socBorder = isCritical ? 'rgba(226,75,74,0.5)' : soc < 40 ? 'rgba(239,159,39,0.5)' : 'rgba(29,158,117,0.5)';
+
+          const gimmickStyles = `<style>
+            @keyframes crit-blink{0%,100%{opacity:1}50%{opacity:0.3}}
+            @keyframes fall1{0%{transform:translateY(-8px) rotate(0deg);opacity:1}100%{transform:translateY(18px) rotate(360deg);opacity:0}}
+            @keyframes fall2{0%{transform:translateY(-8px) rotate(0deg);opacity:1}100%{transform:translateY(18px) rotate(-360deg);opacity:0}}
+            @keyframes flow-r{0%{transform:translateX(-500%)}100%{transform:translateX(3000%)}}
+            @keyframes flow-l{0%{transform:translateX(3000%)}100%{transform:translateX(-500%)}}
+            .crit-b{animation:crit-blink 0.8s ease-in-out infinite}
+            .k1{animation:fall1 1.5s ease-in infinite 0s;position:absolute}
+            .k2{animation:fall2 1.5s ease-in infinite 0.3s;position:absolute}
+            .k3{animation:fall1 1.5s ease-in infinite 0.6s;position:absolute}
+            .k4{animation:fall2 1.5s ease-in infinite 0.9s;position:absolute}
+            .fd{position:absolute;left:0;top:calc(50% - 2.5px);width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.8);}
+            .fd1{animation:${isCharging?'flow-r':'flow-l'} 1.2s linear infinite 0s}
+            .fd2{animation:${isCharging?'flow-r':'flow-l'} 1.2s linear infinite 0.4s}
+            .fd3{animation:${isCharging?'flow-r':'flow-l'} 1.2s linear infinite 0.8s}
+          </style>`;
+
+          const konfettiEl = isFull ? `
+            <div style="position:relative;height:0;overflow:visible;width:100%;">
+              <span class="k1" style="left:10%;font-size:12px;">🟡</span>
+              <span class="k2" style="left:30%;font-size:12px;">🟢</span>
+              <span class="k3" style="left:60%;font-size:12px;">⭐</span>
+              <span class="k4" style="left:80%;font-size:12px;">🟡</span>
+            </div>` : '';
+
+          const socBarInner = (isCharging || isDischarging) 
+            ? `<div class="fd fd1"></div><div class="fd fd2"></div><div class="fd fd3"></div>` : '';
+
+          const socBadge = `
+            <span class="${isCritical ? 'crit-b' : ''}" style="font-size:0.78em;font-weight:600;padding:3px 10px;border-radius:6px;background:${socBg};border:1px solid ${socBorder};color:${socColor};letter-spacing:0.08em;">
+              ${isCritical ? '⚠️ KRITISCH ' : '🔋'} ${soc} % SoC
+            </span>`;
+
+          const battIcon = isCharging ? `
+            <style>
+              @keyframes bolt-pulse { 0%,100%{opacity:0.7;transform:scale(1)} 50%{opacity:1;transform:scale(1.1)} }
+              .bolt-anim { animation: bolt-pulse 0.8s ease-in-out infinite; }
+            </style>
+            <svg width="28" height="28" viewBox="0 0 28 28" class="bolt-anim">
+              <path d="M16 3 L7 16 L13 16 L10 25 L21 12 L15 12 Z" fill="#1D9E75" stroke="rgba(85,239,196,0.6)" stroke-width="1"/>
+            </svg>` :
+          isDischarging ? `
+            <style>
+              @keyframes drain { 0%,100%{opacity:0.8} 50%{opacity:0.4} }
+              .drain-anim { animation: drain 1.2s ease-in-out infinite; }
+            </style>
+            <svg width="28" height="28" viewBox="0 0 28 28" class="drain-anim">
+              <rect x="4" y="8" width="18" height="12" rx="2" fill="none" stroke="#EF9F27" stroke-width="1.5"/>
+              <rect x="22" y="11" width="2" height="6" rx="1" fill="#EF9F27"/>
+              <rect x="5" y="9" width="${Math.round(soc/100*16)}" height="10" rx="1" fill="#EF9F27" opacity="0.8"/>
+            </svg>` : `
+            <svg width="28" height="28" viewBox="0 0 28 28">
+              <rect x="4" y="8" width="18" height="12" rx="2" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"/>
+              <rect x="22" y="11" width="2" height="6" rx="1" fill="rgba(255,255,255,0.4)"/>
+              <rect x="5" y="9" width="${Math.round(soc/100*16)}" height="10" rx="1" fill="${socColor}" opacity="0.8"/>
+            </svg>`;
+
+          const netz   = parseFloat(states['sensor.shellypro3em_leistung']?.state || 0);
+          const pv     = parseFloat(states['sensor.pv_power']?.state || 0);
+          const batAC  = parseFloat(states['sensor.marstek_venus_modbus_ac_leistung']?.state || 0);
+          const home   = Math.max(0, netz - pv + batAC);
+
+          const netzColor = netz > 0 ? '#E24B4A' : netz < 0 ? '#1D9E75' : 'rgba(255,255,255,0.5)';
+          const netzIcon  = netz > 0 ? '↓' : netz < 0 ? '↑' : '·';
+          const pvColor   = pv > 0 ? '#ffd600' : 'rgba(255,255,255,0.5)';
+          const homeColor = '#7ab8e8';
+
+          const energyRow = `
+            <div style="display:flex;gap:16px;align-items:center;justify-content:center;font-size:0.8em;font-weight:600;">
+              <div style="display:flex;align-items:center;gap:4px;color:${netzColor};">
+                <span style="font-size:1.1em;">⚡</span>
+                <span>${netzIcon} ${Math.abs(netz).toFixed(0)} W</span>
+                <span style="font-size:0.85em;opacity:0.7;">${netz > 0 ? 'Bezug' : netz < 0 ? 'Einspeisung' : 'Netz'}</span>
+              </div>
+              <span style="opacity:0.2;">|</span>
+              <div style="display:flex;align-items:center;gap:4px;color:${pvColor};">
+                <span style="font-size:1.1em;">☀️</span>
+                <span>${pv.toFixed(0)} W</span>
+                <span style="font-size:0.85em;opacity:0.7;">PV</span>
+              </div>
+              <span style="opacity:0.2;">|</span>
+              <div style="display:flex;align-items:center;gap:4px;color:${homeColor};">
+                <span style="font-size:1.1em;">🏠</span>
+                <span>${Math.round(home)} W</span>
+                <span style="font-size:0.85em;opacity:0.7;">Verbrauch</span>
+              </div>
+            </div>`;
+
+          return `
+            ${gimmickStyles}
+            <div style="display:flex;flex-direction:column;align-items:center;width:100%;padding:4px 0 10px 0;gap:8px;">
+              ${konfettiEl}
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;">
+                ${battIcon}
+                <span style="font-size:1.5em;font-weight:800;letter-spacing:0.5px;">Batteriespeicher</span>
+                <span style="font-size:0.65em;font-weight:600;padding:3px 8px;border-radius:6px;background:${wlan ? 'rgba(29,158,117,0.15)' : 'rgba(226,75,74,0.15)'};border:1px solid ${wlan ? 'rgba(29,158,117,0.5)' : 'rgba(226,75,74,0.5)'};color:${wlan ? '#1D9E75' : '#E24B4A'};">
+                  ${wlan ? '🟢 Online' : '🔴 Offline'}
+                </span>
+                <span style="opacity:0.2;">|</span>
+                <div style="display:flex;gap:12px;align-items:center;font-size:0.75em;font-weight:600;">
+                  <div style="display:flex;align-items:center;gap:3px;color:${netzColor};">
+                    <span>⚡</span><span>${netzIcon} ${Math.abs(netz).toFixed(0)} W</span>
+                    <span style="font-size:0.85em;opacity:0.6;">${netz > 0 ? 'Bezug' : netz < 0 ? 'Einsp.' : 'Netz'}</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:3px;color:${pvColor};">
+                    <span>☀️</span><span>${pv.toFixed(0)} W</span>
+                    <span style="font-size:0.85em;opacity:0.6;">PV</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:3px;color:${homeColor};">
+                    <span>🏠</span><span>${Math.round(home)} W</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        ]]]
+      styles:
+        card:
+          - background: transparent
+          - box-shadow: none
+          - padding: 4px 0 4px 0
+    - type: custom:layout-card
+      layout_type: grid
+      layout:
+        grid-template-columns: repeat(4, minmax(0, 1fr))
+        gap: 16px
+      cards:
+        - type: custom:button-card
+          entity: sensor.marstek_batterie_laden
+          show_name: false
+          show_state: false
+          show_icon: false
+          show_label: true
+          label: |
+            [[[
+              const val = parseFloat(entity.state || 0);
+              const active = val > 0;
+              const anim = active ? `<style>@keyframes bolt-bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}.bb{animation:bolt-bounce 0.7s ease-in-out infinite}</style>` : '';
+              return `${anim}
+                <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:4px;">
+                  <span class="${active ? 'bb' : ''}" style="font-size:1.8em;">⚡</span>
+                  <span style="font-size:0.8em;font-weight:700;color:white;">${active ? `Laden` : 'Laden'}</span>
+                  <span style="font-size:1em;font-weight:800;color:white;">${active ? val+' W' : '—'}</span>
+                </div>`;
+            ]]]
+          styles:
+            card:
+              - height: 90px
+              - border-radius: 18px
+              - font-size: 1.0em
+              - font-weight: 700
+              - color: white
+              - padding: 0
+              - background: |
+                  [[[ return parseFloat(entity.state) > 0
+                    ? "linear-gradient(135deg,#00b894,#55efc4)"
+                    : "rgba(255,255,255,0.08)"; ]]]
+            label:
+              - width: 100%
+              - height: 100%
+              - padding: 0
+              - margin: 0
+        - type: custom:button-card
+          entity: sensor.marstek_batterie_entladen
+          show_name: false
+          show_state: false
+          show_icon: false
+          show_label: true
+          label: |
+            [[[
+              const val = parseFloat(entity.state || 0);
+              const active = val > 0;
+              const anim = active ? `<style>@keyframes drain-pulse{0%,100%{opacity:1}50%{opacity:0.5}}.dp{animation:drain-pulse 1s ease-in-out infinite}</style>` : '';
+              return `${anim}
+                <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:4px;">
+                  <span class="${active ? 'dp' : ''}" style="font-size:1.8em;">🔋</span>
+                  <span style="font-size:0.8em;font-weight:700;color:white;">Entladen</span>
+                  <span style="font-size:1em;font-weight:800;color:white;">${active ? val+' W' : '—'}</span>
+                </div>`;
+            ]]]
+          styles:
+            card:
+              - height: 90px
+              - border-radius: 18px
+              - padding: 0
+              - background: |
+                  [[[ return parseFloat(entity.state) > 0
+                    ? "linear-gradient(135deg,#e17055,#fab1a0)"
+                    : "rgba(255,255,255,0.08)"; ]]]
+            label:
+              - width: 100%
+              - height: 100%
+              - padding: 0
+              - margin: 0
+        - type: custom:button-card
+          entity: switch.marstek_venus_modbus_backup_funktion
+          show_name: false
+          show_state: false
+          show_icon: false
+          show_label: true
+          tap_action:
+            action: toggle
+          label: |
+            [[[
+              const on = entity.state === 'on';
+              return `
+                <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:4px;">
+                  <span style="font-size:1.8em;">🏠</span>
+                  <span style="font-size:0.8em;font-weight:700;color:white;">Backup</span>
+                  <span style="font-size:1em;font-weight:800;color:white;">${on ? 'AN' : 'AUS'}</span>
+                </div>`;
+            ]]]
+          styles:
+            card:
+              - height: 90px
+              - border-radius: 18px
+              - font-size: 1.0em
+              - font-weight: 700
+              - color: white
+              - padding: 0
+              - background: |
+                  [[[ return entity.state === 'on'
+                    ? 'linear-gradient(135deg,#e17055,#fab1a0)'
+                    : 'rgba(255,255,255,0.08)'; ]]]
+            label:
+              - width: 100%
+              - height: 100%
+              - padding: 0
+              - margin: 0
+        - type: custom:button-card
+          entity: sensor.marstek_batterie_zeitprognose
+          show_name: false
+          show_state: false
+          show_icon: false
+          show_label: true
+          label: |
+            [[[
+              const val = entity.state;
+              const isStandby = val === 'Standby' || val === '--';
+              const anim = !isStandby ? `<style>@keyframes clock-tick{0%,100%{transform:rotate(0deg)}50%{transform:rotate(15deg)}}.ct{animation:clock-tick 1s ease-in-out infinite;display:inline-block}</style>` : '';
+              return `${anim}
+                <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:4px;">
+                  <span class="${!isStandby ? 'ct' : ''}" style="font-size:1.8em;">⏱️</span>
+                  <span style="font-size:0.8em;font-weight:700;color:white;">${isStandby ? 'Standby' : 'Restzeit'}</span>
+                  <span style="font-size:1em;font-weight:800;color:white;">${isStandby ? '—' : val}</span>
+                </div>`;
+            ]]]
+          styles:
+            card:
+              - height: 90px
+              - border-radius: 18px
+              - padding: 0
+              - background: >
+                  [[[ return (entity.state === 'Standby' || entity.state ===
+                  '--')
+                    ? "rgba(255,255,255,0.08)"
+                    : "linear-gradient(135deg,#0984e3,#74b9ff)"; ]]]
+            label:
+              - width: 100%
+              - height: 100%
+              - padding: 0
+              - margin: 0
+    - type: custom:layout-card
+      layout_type: grid
+      layout:
+        grid-template-columns: 1fr 1fr
+        gap: 16px
+      cards:
+        - type: custom:mushroom-select-card
+          entity: select.marstek_venus_modbus_modus
+          name: Modus
+          icon: mdi:tune-variant
+          layout: horizontal
+          card_mod:
+            style: |
+              ha-card {
+                background: rgba(0,0,0,0.25) !important;
+                border-radius: 14px !important;
+                border: 1px solid rgba(255,255,255,0.07) !important;
+                box-shadow: none !important;
+                height: 62px !important;
+              } :host { --mush-spacing: 10px; }
+        - type: custom:button-card
+          entity: sensor.marstek_venus_modbus_batterie_ladezustand
+          show_name: false
+          show_state: false
+          show_icon: false
+          show_label: true
+          tap_action:
+            action: more-info
+          label: |
+            [[[
+              const soc      = parseFloat(entity.state || 0);
+              const laden    = parseFloat(states['sensor.marstek_batterie_laden']?.state || 0);
+              const entladen = parseFloat(states['sensor.marstek_batterie_entladen']?.state || 0);
+              const isCharging = laden > 0;
+              const isDischarging = entladen > 0;
+              const color = soc < 20 ? '#E24B4A' : soc < 40 ? '#EF9F27' : '#1D9E75';
+              const flowDots = (isCharging || isDischarging) ? `
+                <style>
+                  @keyframes flow-r{0%{transform:translateX(-500%)}100%{transform:translateX(3000%)}}
+                  @keyframes flow-l{0%{transform:translateX(3000%)}100%{transform:translateX(-500%)}}
+                  .fd{position:absolute;left:0;top:calc(50% - 2.5px);width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.8);}
+                  .fd1{animation:${isCharging?'flow-r':'flow-l'} 2.4s linear infinite 0s}
+                  .fd2{animation:${isCharging?'flow-r':'flow-l'} 2.4s linear infinite 0.8s}
+                  .fd3{animation:${isCharging?'flow-r':'flow-l'} 2.4s linear infinite 1.6s}
+                </style>` : '';
+              const dots = (isCharging || isDischarging)
+                ? '<div class="fd fd1"></div><div class="fd fd2"></div><div class="fd fd3"></div>' : '';
+              return `${flowDots}
+                <div style="width:100%;padding:10px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:5px;">
+                  <div style="display:flex;justify-content:space-between;align-items:baseline;">
+                    <span style="font-size:12px;color:rgba(255,255,255,0.7);font-weight:600;">SoC</span>
+                    <span style="font-size:15px;font-weight:700;color:${color};">${soc} %</span>
+                  </div>
+                  <div style="width:100%;height:10px;background:rgba(255,255,255,0.08);border-radius:5px;overflow:hidden;position:relative;">
+                    <div style="width:${soc}%;height:100%;border-radius:5px;background:linear-gradient(to right,#E24B4A 0%,#EF9F27 30%,#1D9E75 60%,#1D9E75 100%);background-size:${(10000/Math.max(0.1,soc)).toFixed(1)}% 100%;position:relative;overflow:hidden;">
+                      <div style="position:absolute;top:0;left:0;width:100%;height:45%;background:linear-gradient(to bottom,rgba(255,255,255,0.25),transparent);border-radius:5px;"></div>
+                      ${dots}
+                    </div>
+                  </div>
+                </div>`;
+            ]]]
+          card_mod:
+            style: >
+              ha-card { background: rgba(0,0,0,0.25) !important; border-radius:
+              14px !important; border: 1px solid rgba(255,255,255,0.07)
+              !important; box-shadow: none !important; height: 62px !important;
+              }
+          styles:
+            card:
+              - padding: 0
+            label:
+              - width: 100%
+              - padding: 0
+              - margin: 0
+    - type: custom:layout-card
+      layout_type: grid
+      layout:
+        grid-template-columns: repeat(4, 1fr)
+        gap: 16px
+      cards:
+        - type: vertical-stack
+          cards:
+            - type: custom:button-card
+              entity: sensor.marstek_venus_modbus_ac_leistung
+              show_name: false
+              show_state: false
+              show_icon: false
+              show_label: true
+              tap_action:
+                action: more-info
+              label: |
+                [[[
+                  const val = parseFloat(entity.state || 0);
+                  const max = 1500;
+                  const color = val < 0 ? '#E24B4A' : '#6c5ce7';
+                  const absVal = Math.abs(val);
+                  const laden = parseFloat(states['sensor.marstek_batterie_laden']?.state || 0);
+                  const entladen = parseFloat(states['sensor.marstek_batterie_entladen']?.state || 0);
+                  return `
+                    <div style="width:100%;padding:10.5px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:7px;">
+                      <div style="display:flex;justify-content:space-between;align-items:baseline;">
+                        <span style="font-size:13px;color:rgba(255,255,255,0.92);font-weight:600;">Leistung AC</span>
+                        <span style="font-size:15px;font-weight:700;color:#fff;">${val} W</span>
+                      </div>
+                      <div style='width:100%;height:11px;background:rgba(255,255,255,0.1);border-radius:6px;overflow:hidden;'><div style='width:${Math.min(100,(absVal/max)*100).toFixed(1)}%;height:100%;border-radius:6px;background:${laden > 0 ? 'linear-gradient(to right,#55efc4,#00b894)' : entladen > 0 ? 'linear-gradient(to right,#fab1a0,#E24B4A)' : 'rgba(255,255,255,0.2)'};position:relative;overflow:hidden;'><div style='position:absolute;top:0;left:0;width:100%;height:45%;background:linear-gradient(to bottom,rgba(255,255,255,0.22),transparent);border-radius:6px;'></div></div></div>
+                    </div>`;
+                ]]]
+              card_mod:
+                style: >
+                  ha-card { background: rgba(0,0,0,0.3) !important;
+                  border-radius: 14px !important; border: none !important;
+                  box-shadow: none !important; height: 72px !important; }
+              styles:
+                card:
+                  - padding: 0
+                label:
+                  - width: 100%
+                  - padding: 0
+                  - margin: 0
+            - type: custom:button-card
+              entity: sensor.marstek_venus_modbus_ac_strom
+              show_name: false
+              show_state: false
+              show_icon: false
+              show_label: true
+              tap_action:
+                action: more-info
+              label: |
+                [[[
+                  const val = parseFloat(entity.state || 0);
+                  const max = 6;
+                  const absVal = Math.abs(val);
+                  const laden = parseFloat(states['sensor.marstek_batterie_laden']?.state || 0);
+                  const entladen = parseFloat(states['sensor.marstek_batterie_entladen']?.state || 0);
+                  return `
+                    <div style="width:100%;padding:10.5px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:7px;">
+                      <div style="display:flex;justify-content:space-between;align-items:baseline;">
+                        <span style="font-size:13px;color:rgba(255,255,255,0.92);font-weight:600;">Strom AC</span>
+                        <span style="font-size:15px;font-weight:700;color:#fff;">${val.toFixed(2)} A</span>
+                      </div>
+                      <div style='width:100%;height:11px;background:rgba(255,255,255,0.1);border-radius:6px;overflow:hidden;'><div style='width:${Math.min(100,(absVal/max)*100).toFixed(1)}%;height:100%;border-radius:6px;background:${laden > 0 ? 'linear-gradient(to right,#55efc4,#00b894)' : entladen > 0 ? 'linear-gradient(to right,#fab1a0,#E24B4A)' : 'rgba(255,255,255,0.2)'};position:relative;overflow:hidden;'><div style='position:absolute;top:0;left:0;width:100%;height:45%;background:linear-gradient(to bottom,rgba(255,255,255,0.22),transparent);border-radius:6px;'></div></div></div>
+                    </div>`;
+                ]]]
+              card_mod:
+                style: >
+                  ha-card { background: rgba(0,0,0,0.3) !important;
+                  border-radius: 14px !important; border: none !important;
+                  box-shadow: none !important; height: 72px !important; }
+              styles:
+                card:
+                  - padding: 0
+                label:
+                  - width: 100%
+                  - padding: 0
+                  - margin: 0
+            - type: custom:button-card
+              entity: sensor.marstek_venus_modbus_ac_spannung
+              show_name: false
+              show_state: false
+              show_icon: false
+              show_label: true
+              tap_action:
+                action: more-info
+              label: |
+                [[[
+                  const val = parseFloat(entity.state || 0);
+                  const min = 200;
+                  const max = 260;
+                  const pct = Math.min(100, Math.max(0, ((val - min) / (max - min)) * 100)).toFixed(1);
+                  const markerPct = ((230 - min) / (max - min) * 100).toFixed(1);
+                  const color = val < 210 ? '#E24B4A' : val < 220 ? '#EF9F27' : val < 240 ? '#1D9E75' : val < 250 ? '#EF9F27' : '#E24B4A';
+                  const warn = val < 210 || val > 250;
+                  const warnPulse = warn ? `<style>@keyframes netz-warn{0%,100%{opacity:0.8}50%{opacity:0.2}}.nw{animation:netz-warn 0.8s ease-in-out infinite}</style>` : '';
+                  return `${warnPulse}
+                    <div style="width:100%;padding:10.5px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:7px;">
+                      <div style="display:flex;justify-content:space-between;align-items:baseline;">
+                        <span class="${warn ? 'nw' : ''}" style="font-size:13px;color:rgba(255,255,255,0.92);font-weight:600;">Netz AC</span>
+                        <span style="font-size:15px;font-weight:700;color:${color};">${val.toFixed(1)} V</span>
+                      </div>
+                      <div style="width:100%;height:11px;background:linear-gradient(to right,#E24B4A 0%,#E24B4A 10%,#EF9F27 20%,#1D9E75 33%,#1D9E75 67%,#EF9F27 80%,#E24B4A 90%,#E24B4A 100%);border-radius:6px;overflow:visible;position:relative;">
+                        <div style="position:absolute;top:0;left:0;width:100%;height:45%;background:linear-gradient(to bottom,rgba(255,255,255,0.15),transparent);border-radius:6px;"></div>
+                        <div style="position:absolute;top:-3px;left:${markerPct}%;width:2px;height:17px;background:rgba(255,255,255,0.9);border-radius:1px;"></div>
+                        <div style="position:absolute;top:-7px;left:calc(${pct}% - 5px);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid rgba(255,255,255,0.95);filter:drop-shadow(0 1px 2px rgba(0,0,0,0.5));"></div>
+                      </div>
+                      <div style="display:flex;justify-content:space-between;font-size:9px;color:rgba(255,255,255,0.25);">
+                        <span>${min} V</span><span style="color:rgba(255,255,255,0.5);">230 V</span><span>${max} V</span>
+                      </div>
+                    </div>`;
+                ]]]
+              card_mod:
+                style: >
+                  ha-card { background: rgba(0,0,0,0.3) !important;
+                  border-radius: 14px !important; border: none !important;
+                  box-shadow: none !important; height: 72px !important; }
+              styles:
+                card:
+                  - padding: 0
+                label:
+                  - width: 100%
+                  - padding: 0
+                  - margin: 0
+        - type: vertical-stack
+          cards:
+            - type: custom:button-card
+              entity: sensor.marstek_venus_modbus_batterieleistung
+              show_name: false
+              show_state: false
+              show_icon: false
+              show_label: true
+              tap_action:
+                action: more-info
+              label: |
+                [[[
+                  const val = parseFloat(entity.state || 0);
+                  const max = 1500;
+                  const color = val < 0 ? '#E24B4A' : '#EF9F27';
+                  const absVal = Math.abs(val);
+                  const laden = parseFloat(states['sensor.marstek_batterie_laden']?.state || 0);
+                  const entladen = parseFloat(states['sensor.marstek_batterie_entladen']?.state || 0);
+                  return `
+                    <div style="width:100%;padding:10.5px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:7px;">
+                      <div style="display:flex;justify-content:space-between;align-items:baseline;">
+                        <span style="font-size:13px;color:rgba(255,255,255,0.92);font-weight:600;">Leistung DC</span>
+                        <span style="font-size:15px;font-weight:700;color:#fff;">${val} W</span>
+                      </div>
+                      <div style='width:100%;height:11px;background:rgba(255,255,255,0.1);border-radius:6px;overflow:hidden;'><div style='width:${Math.min(100,(absVal/max)*100).toFixed(1)}%;height:100%;border-radius:6px;background:${laden > 0 ? 'linear-gradient(to right,#55efc4,#00b894)' : entladen > 0 ? 'linear-gradient(to right,#fab1a0,#E24B4A)' : 'rgba(255,255,255,0.2)'};position:relative;overflow:hidden;'><div style='position:absolute;top:0;left:0;width:100%;height:45%;background:linear-gradient(to bottom,rgba(255,255,255,0.22),transparent);border-radius:6px;'></div></div></div>
+                    </div>`;
+                ]]]
+              card_mod:
+                style: >
+                  ha-card { background: rgba(0,0,0,0.3) !important;
+                  border-radius: 14px !important; border: none !important;
+                  box-shadow: none !important; height: 72px !important; }
+              styles:
+                card:
+                  - padding: 0
+                label:
+                  - width: 100%
+                  - padding: 0
+                  - margin: 0
+            - type: custom:button-card
+              entity: sensor.marstek_venus_modbus_batteriestrom
+              show_name: false
+              show_state: false
+              show_icon: false
+              show_label: true
+              tap_action:
+                action: more-info
+              label: |
+                [[[
+                  const val = parseFloat(entity.state || 0);
+                  const max = 25;
+                  const absVal = Math.abs(val);
+                  const color = val < 0 ? '#E24B4A' : '#EF9F27';
+                  const laden = parseFloat(states['sensor.marstek_batterie_laden']?.state || 0);
+                  const entladen = parseFloat(states['sensor.marstek_batterie_entladen']?.state || 0);
+                  return `
+                    <div style="width:100%;padding:10.5px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:7px;">
+                      <div style="display:flex;justify-content:space-between;align-items:baseline;">
+                        <span style="font-size:13px;color:rgba(255,255,255,0.92);font-weight:600;">Strom DC</span>
+                        <span style="font-size:15px;font-weight:700;color:#fff;">${val.toFixed(2)} A</span>
+                      </div>
+                      <div style='width:100%;height:11px;background:rgba(255,255,255,0.1);border-radius:6px;overflow:hidden;'><div style='width:${Math.min(100,(absVal/max)*100).toFixed(1)}%;height:100%;border-radius:6px;background:${laden > 0 ? 'linear-gradient(to right,#55efc4,#00b894)' : entladen > 0 ? 'linear-gradient(to right,#fab1a0,#E24B4A)' : 'rgba(255,255,255,0.2)'};position:relative;overflow:hidden;'><div style='position:absolute;top:0;left:0;width:100%;height:45%;background:linear-gradient(to bottom,rgba(255,255,255,0.22),transparent);border-radius:6px;'></div></div></div>
+                    </div>`;
+                ]]]
+              card_mod:
+                style: >
+                  ha-card { background: rgba(0,0,0,0.3) !important;
+                  border-radius: 14px !important; border: none !important;
+                  box-shadow: none !important; height: 72px !important; }
+              styles:
+                card:
+                  - padding: 0
+                label:
+                  - width: 100%
+                  - padding: 0
+                  - margin: 0
+            - type: custom:button-card
+              entity: sensor.marstek_venus_modbus_batteriespannung
+              show_name: false
+              show_state: false
+              show_icon: false
+              show_label: true
+              tap_action:
+                action: more-info
+              label: |
+                [[[
+                  const val = parseFloat(entity.state || 0);
+                  const min = 44;
+                  const max = 58;
+                  const pct = Math.min(100, Math.max(0, ((val - min) / (max - min)) * 100)).toFixed(1);
+                  const markerPct = ((51.2 - min) / (max - min) * 100).toFixed(1);
+                  const color = val < 46 ? '#E24B4A' : val < 48 ? '#EF9F27' : val < 56 ? '#1D9E75' : val < 57 ? '#EF9F27' : '#E24B4A';
+                  const warn = val < 46 || val > 57;
+                  const warnPulse = warn ? '<style>@keyframes vdc-warn{0%,100%{opacity:0.8}50%{opacity:0.2}}.vw{animation:vdc-warn 0.8s ease-in-out infinite}</style>' : '';
+                  return `${warnPulse}
+                    <div style="width:100%;padding:10.5px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:7px;">
+                      <div style="display:flex;justify-content:space-between;align-items:baseline;">
+                        <span class="${warn ? 'vw' : ''}" style="font-size:13px;color:rgba(255,255,255,0.92);font-weight:600;">Spannung DC</span>
+                        <span style="font-size:15px;font-weight:700;color:${color};">${val.toFixed(1)} V</span>
+                      </div>
+                      <div style="width:100%;height:11px;background:linear-gradient(to right,#E24B4A 0%,#E24B4A 10%,#EF9F27 20%,#1D9E75 33%,#1D9E75 67%,#EF9F27 80%,#E24B4A 90%,#E24B4A 100%);border-radius:6px;overflow:visible;position:relative;">
+                        <div style="position:absolute;top:0;left:0;width:100%;height:45%;background:linear-gradient(to bottom,rgba(255,255,255,0.15),transparent);border-radius:6px;"></div>
+                        <div style="position:absolute;top:-3px;left:${markerPct}%;width:2px;height:17px;background:rgba(255,255,255,0.9);border-radius:1px;"></div>
+                        <div style="position:absolute;top:-7px;left:calc(${pct}% - 5px);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid rgba(255,255,255,0.95);filter:drop-shadow(0 1px 2px rgba(0,0,0,0.5));"></div>
+                      </div>
+                      <div style="display:flex;justify-content:space-between;font-size:9px;color:rgba(255,255,255,0.25);">
+                        <span>${min} V</span><span style="color:rgba(255,255,255,0.5);">51.2 V</span><span>${max} V</span>
+                      </div>
+                    </div>`;
+                ]]]
+              card_mod:
+                style: >
+                  ha-card { background: rgba(0,0,0,0.3) !important;
+                  border-radius: 14px !important; border: none !important;
+                  box-shadow: none !important; height: 72px !important; }
+              styles:
+                card:
+                  - padding: 0
+                label:
+                  - width: 100%
+                  - padding: 0
+                  - margin: 0
+        - type: vertical-stack
+          cards:
+            - type: custom:button-card
+              entity: sensor.marstek_venus_modbus_innentemperatur
+              show_name: false
+              show_state: false
+              show_icon: false
+              show_label: true
+              tap_action:
+                action: more-info
+              label: |
+                [[[
+                  const val = parseFloat(entity.state || 0);
+                  const max = 50;
+                  const color = val < 25 ? '#1D9E75' : val < 35 ? '#EF9F27' : '#E24B4A';
+                  const tempWarn = val > 40 ? `
+                    <style>
+                      @keyframes temp-ring{0%{transform:scale(1);opacity:0.8}50%{transform:scale(1.6);opacity:0}100%{transform:scale(1);opacity:0}}
+                      .tr{animation:temp-ring 1.2s ease-out infinite;transform-origin:center}
+                    </style>` : '';
+                  return `${tempWarn}
+                    <div style="width:100%;padding:10.5px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:7px;">
+                      <div style="display:flex;justify-content:space-between;align-items:baseline;">
+                        <div style="display:flex;align-items:center;gap:6px;">
+                          ${val > 40 ? `<div style="position:relative;width:10px;height:10px;flex-shrink:0;"><div class="tr" style="position:absolute;inset:-4px;border-radius:50%;border:2px solid #E24B4A;"></div><div style="width:10px;height:10px;border-radius:50%;background:#E24B4A;"></div></div>` : ''}
+                          <span style="font-size:13px;color:rgba(255,255,255,0.92);font-weight:600;">Temp. Innen</span>
+                        </div>
+                        <span style="font-size:15px;font-weight:700;color:#fff;">${val.toFixed(1)} °C</span>
+                      </div>
+                      <div style='width:100%;height:11px;background:rgba(255,255,255,0.1);border-radius:6px;overflow:hidden;'><div style='width:${Math.min(100,(val/max)*100).toFixed(1)}%;height:100%;border-radius:6px;background:linear-gradient(to right,#1D9E75,#EF9F27 60%,#E24B4A 100%);background-size:${(10000/Math.max(0.1,(val/max)*100)).toFixed(1)}% 100%;position:relative;overflow:hidden;'><div style='position:absolute;top:0;left:0;width:100%;height:45%;background:linear-gradient(to bottom,rgba(255,255,255,0.22),transparent);border-radius:6px;'></div></div></div>
+                    </div>`;
+                ]]]
+              card_mod:
+                style: >
+                  ha-card { background: rgba(0,0,0,0.3) !important;
+                  border-radius: 14px !important; border: none !important;
+                  box-shadow: none !important; height: 72px !important; }
+              styles:
+                card:
+                  - padding: 0
+                label:
+                  - width: 100%
+                  - padding: 0
+                  - margin: 0
+            - type: custom:button-card
+              entity: sensor.marstek_venus_modbus_gesamt_roundtrip_effizienz
+              show_name: false
+              show_state: false
+              show_icon: false
+              show_label: true
+              tap_action:
+                action: more-info
+              label: |
+                [[[
+                  const val = parseFloat(entity.state || 0);
+                  const color = val < 80 ? '#E24B4A' : val < 90 ? '#EF9F27' : '#1D9E75';
+                  return `
+                    <div style="width:100%;padding:10.5px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:7px;">
+                      <div style="display:flex;justify-content:space-between;align-items:baseline;">
+                        <span style="font-size:13px;color:rgba(255,255,255,0.92);font-weight:600;">Effizienz</span>
+                        <span style="font-size:15px;font-weight:700;color:${color};">${val.toFixed(1)} %</span>
+                      </div>
+                      <div style='width:100%;height:11px;background:rgba(255,255,255,0.1);border-radius:6px;overflow:hidden;'><div style='width:${val.toFixed(1)}%;height:100%;border-radius:6px;background:linear-gradient(to right,#E24B4A,#EF9F27 50%,#1D9E75 80%);background-size:${(10000/Math.max(0.1,val)).toFixed(1)}% 100%;position:relative;overflow:hidden;'><div style='position:absolute;top:0;left:0;width:100%;height:45%;background:linear-gradient(to bottom,rgba(255,255,255,0.22),transparent);border-radius:6px;'></div></div></div>
+                    </div>`;
+                ]]]
+              card_mod:
+                style: >
+                  ha-card { background: rgba(0,0,0,0.3) !important;
+                  border-radius: 14px !important; border: none !important;
+                  box-shadow: none !important; height: 72px !important; }
+              styles:
+                card:
+                  - padding: 0
+                label:
+                  - width: 100%
+                  - padding: 0
+                  - margin: 0
+            - type: custom:button-card
+              entity: sensor.marstek_venus_modbus_ac_frequenz
+              show_name: false
+              show_state: false
+              show_icon: false
+              show_label: true
+              tap_action:
+                action: more-info
+              label: |
+                [[[
+                  const val = parseFloat(entity.state || 0);
+                  const min = 47;
+                  const max = 53;
+                  const pct = Math.min(100, Math.max(0, ((val - min) / (max - min)) * 100)).toFixed(1);
+                  const markerPct = ((50 - min) / (max - min) * 100).toFixed(1);
+                  const color = val < 49 ? '#E24B4A' : val < 49.5 ? '#EF9F27' : val < 50.5 ? '#1D9E75' : val < 51 ? '#EF9F27' : '#E24B4A';
+                  const warn = val < 49 || val > 51;
+                  const warnPulse = warn ? `<style>@keyframes freq-warn{0%,100%{opacity:0.8}50%{opacity:0.2}}.fw{animation:freq-warn 0.8s ease-in-out infinite}</style>` : '';
+                  return `${warnPulse}
+                    <div style="width:100%;padding:10.5px 14px;box-sizing:border-box;display:flex;flex-direction:column;gap:7px;">
+                      <div style="display:flex;justify-content:space-between;align-items:baseline;">
+                        <span class="${warn ? 'fw' : ''}" style="font-size:13px;color:rgba(255,255,255,0.92);font-weight:600;">AC Frequenz</span>
+                        <span style="font-size:15px;font-weight:700;color:${color};">${val.toFixed(2)} Hz</span>
+                      </div>
+                      <div style="width:100%;height:11px;background:linear-gradient(to right,#E24B4A 0%,#E24B4A 15%,#EF9F27 25%,#1D9E75 35%,#1D9E75 65%,#EF9F27 75%,#E24B4A 85%,#E24B4A 100%);border-radius:6px;overflow:visible;position:relative;">
+                        <div style="position:absolute;top:0;left:0;width:100%;height:45%;background:linear-gradient(to bottom,rgba(255,255,255,0.15),transparent);border-radius:6px;"></div>
+                        <div style="position:absolute;top:-3px;left:${markerPct}%;width:2px;height:17px;background:rgba(255,255,255,0.9);border-radius:1px;"></div>
+                        <div style="position:absolute;top:-7px;left:calc(${pct}% - 5px);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid rgba(255,255,255,0.95);filter:drop-shadow(0 1px 2px rgba(0,0,0,0.5));"></div>
+                      </div>
+                      <div style="display:flex;justify-content:space-between;font-size:9px;color:rgba(255,255,255,0.25);">
+                        <span>${min} Hz</span><span style="color:rgba(255,255,255,0.5);">50 Hz</span><span>${max} Hz</span>
+                      </div>
+                    </div>`;
+                ]]]
+              card_mod:
+                style: >
+                  ha-card { background: rgba(0,0,0,0.3) !important;
+                  border-radius: 14px !important; border: none !important;
+                  box-shadow: none !important; height: 72px !important; }
+              styles:
+                card:
+                  - padding: 0
+                label:
+                  - width: 100%
+                  - padding: 0
+                  - margin: 0
+        - type: vertical-stack
+          cards:
+            - type: custom:mushroom-template-card
+              entity: sensor.marstek_energie_laden_kwh
+              primary: Geladen
+              secondary: "{{ states(entity) }} kWh"
+              icon: mdi:arrow-down-bold
+              icon_color: green
+              card_mod:
+                style: >
+                  ha-card { background: rgba(0,0,0,0.3) !important;
+                  border-radius: 14px !important; border: none !important;
+                  height: 72px !important; } :host { --mush-spacing: 12px; }
+            - type: custom:mushroom-template-card
+              entity: sensor.marstek_venus_modbus_vollzyklen_berechnet
+              primary: Vollzyklen
+              secondary: >-
+                {{ states('sensor.marstek_venus_modbus_vollzyklen_berechnet') |
+                float(0) | round(1) }}
+              icon: mdi:battery-sync
+              icon_color: cyan
+              card_mod:
+                style: >
+                  ha-card { background: rgba(0,0,0,0.3) !important;
+                  border-radius: 14px !important; border: none !important;
+                  height: 72px !important; } :host { --mush-spacing: 12px; }
+            - type: custom:mushroom-template-card
+              entity: sensor.marstek_energie_entladen_kwh
+              primary: Entladen
+              secondary: "{{ states(entity) }} kWh"
+              icon: mdi:arrow-up-bold
+              icon_color: red
+              card_mod:
+                style: >
+                  ha-card { background: rgba(0,0,0,0.3) !important;
+                  border-radius: 14px !important; border: none !important;
+                  height: 72px !important; } :host { --mush-spacing: 12px; }
+    - type: custom:layout-card
+      layout_type: grid
+      layout:
+        grid-template-columns: repeat(2, 1fr)
+        gap: 16px
+      cards:
+        - type: horizontal-stack
+          cards:
+            - type: custom:button-card
+              entity: number.marstek_venus_modbus_ladeleistung_einstellen
+              show_icon: false
+              show_name: true
+              name: −
+              tap_action:
+                action: call-service
+                service: number.set_value
+                service_data:
+                  entity_id: number.marstek_venus_modbus_ladeleistung_einstellen
+                  value: "[[[ return Math.max(0, (entity.state|0) - 50); ]]]"
+              styles:
+                card:
+                  - height: 40px
+                  - border-radius: 10px 0 0 10px
+                  - font-size: 1.3em
+                  - font-weight: 700
+                  - color: white
+                  - background: rgba(0,0,0,0.3)
+                  - border: 1px solid rgba(255,255,255,0.07) !important
+                  - border-right: none !important
+                  - box-shadow: none
+            - type: custom:button-card
+              entity: number.marstek_venus_modbus_ladeleistung_einstellen
+              show_icon: false
+              show_name: false
+              show_label: true
+              label: >-
+                [[[ return `<div
+                style="font-size:9px;opacity:0.6;margin-bottom:1px;">Laden
+                Set</div><div
+                style="font-size:13px;font-weight:700;">${entity.state}
+                W</div>`; ]]]
+              tap_action:
+                action: none
+              styles:
+                card:
+                  - height: 40px
+                  - border-radius: 0
+                  - color: white
+                  - background: rgba(0,0,0,0.3)
+                  - border: 1px solid rgba(255,255,255,0.07) !important
+                  - border-left: none !important
+                  - border-right: none !important
+                  - box-shadow: none
+            - type: custom:button-card
+              entity: number.marstek_venus_modbus_ladeleistung_einstellen
+              show_icon: false
+              show_name: true
+              name: +
+              tap_action:
+                action: call-service
+                service: number.set_value
+                service_data:
+                  entity_id: number.marstek_venus_modbus_ladeleistung_einstellen
+                  value: "[[[ return Math.min(2500, (entity.state|0) + 50); ]]]"
+              styles:
+                card:
+                  - height: 40px
+                  - border-radius: 0 10px 10px 0
+                  - font-size: 1.3em
+                  - font-weight: 700
+                  - color: white
+                  - background: rgba(0,0,0,0.3)
+                  - border: 1px solid rgba(255,255,255,0.07) !important
+                  - border-left: none !important
+                  - box-shadow: none
+        - type: horizontal-stack
+          cards:
+            - type: custom:button-card
+              entity: number.marstek_venus_modbus_maximale_entladeleistung
+              show_icon: false
+              show_name: true
+              name: −
+              tap_action:
+                action: call-service
+                service: number.set_value
+                service_data:
+                  entity_id: number.marstek_venus_modbus_maximale_entladeleistung
+                  value: "[[[ return Math.max(0, (entity.state|0) - 50); ]]]"
+              styles:
+                card:
+                  - height: 40px
+                  - border-radius: 10px 0 0 10px
+                  - font-size: 1.3em
+                  - font-weight: 700
+                  - color: white
+                  - background: rgba(0,0,0,0.3)
+                  - border: 1px solid rgba(255,255,255,0.07) !important
+                  - border-right: none !important
+                  - box-shadow: none
+            - type: custom:button-card
+              entity: number.marstek_venus_modbus_maximale_entladeleistung
+              show_icon: false
+              show_name: false
+              show_label: true
+              label: >-
+                [[[ return `<div
+                style="font-size:9px;opacity:0.6;margin-bottom:1px;">Max
+                Entladen</div><div
+                style="font-size:13px;font-weight:700;">${entity.state}
+                W</div>`; ]]]
+              tap_action:
+                action: none
+              styles:
+                card:
+                  - height: 40px
+                  - border-radius: 0
+                  - color: white
+                  - background: rgba(0,0,0,0.3)
+                  - border: 1px solid rgba(255,255,255,0.07) !important
+                  - border-left: none !important
+                  - border-right: none !important
+                  - box-shadow: none
+            - type: custom:button-card
+              entity: number.marstek_venus_modbus_maximale_entladeleistung
+              show_icon: false
+              show_name: true
+              name: +
+              tap_action:
+                action: call-service
+                service: number.set_value
+                service_data:
+                  entity_id: number.marstek_venus_modbus_maximale_entladeleistung
+                  value: "[[[ return Math.min(2500, (entity.state|0) + 50); ]]]"
+              styles:
+                card:
+                  - height: 40px
+                  - border-radius: 0 10px 10px 0
+                  - font-size: 1.3em
+                  - font-weight: 700
+                  - color: white
+                  - background: rgba(0,0,0,0.3)
+                  - border: 1px solid rgba(255,255,255,0.07) !important
+                  - border-left: none !important
+                  - box-shadow: none
+        - type: horizontal-stack
+          cards:
+            - type: custom:button-card
+              entity: number.marstek_venus_modbus_maximale_ladeleistung
+              show_icon: false
+              show_name: true
+              name: −
+              tap_action:
+                action: call-service
+                service: number.set_value
+                service_data:
+                  entity_id: number.marstek_venus_modbus_maximale_ladeleistung
+                  value: "[[[ return Math.max(0, (entity.state|0) - 50); ]]]"
+              styles:
+                card:
+                  - height: 40px
+                  - border-radius: 10px 0 0 10px
+                  - font-size: 1.3em
+                  - font-weight: 700
+                  - color: white
+                  - background: rgba(0,0,0,0.3)
+                  - border: 1px solid rgba(255,255,255,0.07) !important
+                  - border-right: none !important
+                  - box-shadow: none
+            - type: custom:button-card
+              entity: number.marstek_venus_modbus_maximale_ladeleistung
+              show_icon: false
+              show_name: false
+              show_label: true
+              label: >-
+                [[[ return `<div
+                style="font-size:9px;opacity:0.6;margin-bottom:1px;">Max
+                Laden</div><div
+                style="font-size:13px;font-weight:700;">${entity.state}
+                W</div>`; ]]]
+              tap_action:
+                action: none
+              styles:
+                card:
+                  - height: 40px
+                  - border-radius: 0
+                  - color: white
+                  - background: rgba(0,0,0,0.3)
+                  - border: 1px solid rgba(255,255,255,0.07) !important
+                  - border-left: none !important
+                  - border-right: none !important
+                  - box-shadow: none
+            - type: custom:button-card
+              entity: number.marstek_venus_modbus_maximale_ladeleistung
+              show_icon: false
+              show_name: true
+              name: +
+              tap_action:
+                action: call-service
+                service: number.set_value
+                service_data:
+                  entity_id: number.marstek_venus_modbus_maximale_ladeleistung
+                  value: "[[[ return Math.min(2500, (entity.state|0) + 50); ]]]"
+              styles:
+                card:
+                  - height: 40px
+                  - border-radius: 0 10px 10px 0
+                  - font-size: 1.3em
+                  - font-weight: 700
+                  - color: white
+                  - background: rgba(0,0,0,0.3)
+                  - border: 1px solid rgba(255,255,255,0.07) !important
+                  - border-left: none !important
+                  - box-shadow: none
+        - type: horizontal-stack
+          cards:
+            - type: custom:button-card
+              entity: number.marstek_venus_modbus_maximaler_soc
+              show_icon: false
+              show_name: true
+              name: −
+              tap_action:
+                action: call-service
+                service: number.set_value
+                service_data:
+                  entity_id: number.marstek_venus_modbus_maximaler_soc
+                  value: "[[[ return Math.max(0, (entity.state|0) - 5); ]]]"
+              styles:
+                card:
+                  - height: 40px
+                  - border-radius: 10px 0 0 10px
+                  - font-size: 1.3em
+                  - font-weight: 700
+                  - color: white
+                  - background: rgba(0,0,0,0.3)
+                  - border: 1px solid rgba(255,255,255,0.07) !important
+                  - border-right: none !important
+                  - box-shadow: none
+            - type: custom:button-card
+              entity: number.marstek_venus_modbus_maximaler_soc
+              show_icon: false
+              show_name: false
+              show_label: true
+              label: >-
+                [[[ return `<div
+                style="font-size:9px;opacity:0.6;margin-bottom:1px;">Max
+                SoC</div><div
+                style="font-size:13px;font-weight:700;">${entity.state}
+                %</div>`; ]]]
+              tap_action:
+                action: none
+              styles:
+                card:
+                  - height: 40px
+                  - border-radius: 0
+                  - color: white
+                  - background: rgba(0,0,0,0.3)
+                  - border: 1px solid rgba(255,255,255,0.07) !important
+                  - border-left: none !important
+                  - border-right: none !important
+                  - box-shadow: none
+            - type: custom:button-card
+              entity: number.marstek_venus_modbus_maximaler_soc
+              show_icon: false
+              show_name: true
+              name: +
+              tap_action:
+                action: call-service
+                service: number.set_value
+                service_data:
+                  entity_id: number.marstek_venus_modbus_maximaler_soc
+                  value: "[[[ return Math.min(100, (entity.state|0) + 5); ]]]"
+              styles:
+                card:
+                  - height: 40px
+                  - border-radius: 0 10px 10px 0
+                  - font-size: 1.3em
+                  - font-weight: 700
+                  - color: white
+                  - background: rgba(0,0,0,0.3)
+                  - border: 1px solid rgba(255,255,255,0.07) !important
+                  - border-left: none !important
+                  - box-shadow: none
