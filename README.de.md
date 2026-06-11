@@ -153,276 +153,99 @@ Diese Automatisierung ist das Herzstück der Anlage. Sie steuert dynamisch, wie 
 
 ### 3. Node-RED: Der Emulator-Flow
 
-<img width="793" height="295" alt="Screenshot (236)" src="https://github.com/user-attachments/assets/452f594d-9fec-416c-a971-6576927c58ae" />
-
-Importiere die in diesem Repository beiliegende flow.json Datei in dein Node-RED.
-Der Flow liest alle 5 Sekunden die input_number.fake_sdm_power aus Home Assistant aus, bereitet die Daten mathematisch für 3 Phasen auf und antwortet dem Growatt in perfektem Eastron-Modbus-Hexadezimalcode.
-Vergiss nicht, im Node-RED Flow den richtigen USB-Port für deinen RS485-Stick auszuwählen!
-
-### 4. Das Marstek Steuerungs-Dashboard (Optional)
-
-<img width="1110" height="765" alt="Screenshot (250)" src="https://github.com/user-attachments/assets/cb422a58-d301-4081-9477-9abad7363eef" />
+<img width="809" height="330" alt="Screenshot (289)" src="https://github.com/user-attachments/assets/4175f6b6-b699-4316-bb6c-d5c6b0d3a038" />
 
 
-Als Option ist hier der YAML-Code für eine "hochmoderne" ;), im Glas-Design gehaltene Home Assistant Dashboard-Karte, mit der du den Marstek-Akku überwachen und steuern kannst (benötigt Mushroom Cards, Card-Mod und Stack-in-Card via HACS). Tablet und Handy kompatibel
+---
 
-```yaml
-type: custom:mod-card
-column_span: 2
-grid_options:
-  columns: 24
-card_mod:
-  style: |
-    ha-card {
-      border: 1px solid rgba(255, 255, 255, 0.1) !important;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
-      background: rgba(0, 0, 0, 0.18) !important;
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-radius: 26px !important;
-      padding: 16px !important;
-      color: rgba(255, 255, 255, 0.95) !important;
-    }
-card:
-  type: custom:stack-in-card
-  mode: vertical
-  card_mod:
-    style: |
-      ha-card {
-        border: none !important;
-        box-shadow: none !important;
-        background: transparent !important;
-      }
-  cards:
-    - type: custom:button-card
-      show_name: false
-      show_state: false
-      show_icon: false
-      show_label: true
-      label: |
-        [[[
-          return `
-            <div style="display:flex;flex-direction:column;gap:8px;">
-              <div style="font-size:1.55em; font-weight:800; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:10px;">
-                Batteriespeicher
-              </div>
-            </div>
-          `;
-        ]]]
-      styles:
-        card:
-          - background: transparent
-          - box-shadow: none
-          - padding: 4px 6px 12px 6px
-    - type: custom:button-card
-      entity: sensor.marstek_venus_modbus_wechselrichter_status
-      show_name: false
-      show_state: false
-      show_icon: false
-      show_label: true
-      label: |
-        [[[
-          const status = entity?.state ?? 'Unbekannt';
-          const wlan = states['binary_sensor.marstek_venus_modbus_wlan_status']?.state === 'on' ? '🟢 Online' : '🔴 Offline';
-          const mode = states['select.marstek_venus_modbus_modus']?.state ?? '—';
-          const isNulleinspeisung = mode === 'anti_feed';
-          const modeText = isNulleinspeisung ? 'Nulleispeisung aktiv' : (mode === 'manual' ? 'Manuell' : 'Trade Mode');
-          const modeColor = isNulleinspeisung ? '#00ff88' : 'rgba(255,255,255,0.9)';
-          return `
-            <div style="display:flex; justify-content:space-between; align-items:center; font-size:1.0em; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:10px;">
-              <div>⚡ System-Status: <b>${status}</b></div>
-              <div style="display:flex; align-items:center; gap:10px;">
-                <div style="padding:4px 12px; border-radius:999px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:${modeColor}; font-weight:800;">
-                  ${modeText}
-                </div>
-                <div style="font-weight:800;">Verbindung: ${wlan}</div>
-              </div>
-            </div>
-          `;
-        ]]]
-      styles:
-        card:
-          - background: transparent
-          - box-shadow: none
-          - padding: 4px 6px 12px 6px
-    - type: custom:mushroom-select-card
-      entity: select.marstek_venus_modbus_modus
-      name: Steuerung / Modus
-      icon: mdi:tune-variant
-      layout: horizontal
-      card_mod:
-        style: |
-          ha-card {
-            background: rgba(0, 0, 0, 0.25) !important;
-            border-radius: 18px !important;
-            border: 1px solid rgba(255, 255, 255, 0.05) !important;
-            box-shadow: none !important;
-          }
-    - type: custom:button-card
-      show_name: false
-      show_icon: false
-      styles:
-        card:
-          - height: 2px
-          - background: transparent
-          - border: none
-          - box-shadow: none
-          - padding: 0
-          - margin: 0
-    - type: custom:layout-card
-      layout_type: grid
-      layout:
-        grid-template-columns: repeat(2, 1fr)
-        gap: 8px
-      cards:
-        - type: custom:mushroom-number-card
-          entity: number.marstek_venus_modbus_ladeleistung_einstellen
-          name: Ladeleistung Set
-          icon: mdi:battery-charging-high
-          display_mode: slider
-          layout: horizontal
-          card_mod:
-            style: |
-              ha-card {
-                background: rgba(0, 0, 0, 0.25) !important;
-                border-radius: 18px !important;
-                border: 1px solid rgba(255, 255, 255, 0.05) !important;
-                box-shadow: none !important;
-              }
-        - type: custom:mushroom-number-card
-          entity: number.marstek_venus_modbus_maximale_entladeleistung
-          name: Max Entladen
-          icon: mdi:battery-arrow-up
-          display_mode: slider
-          layout: horizontal
-          card_mod:
-            style: |
-              ha-card {
-                background: rgba(0, 0, 0, 0.25) !important;
-                border-radius: 18px !important;
-                border: 1px solid rgba(255, 255, 255, 0.05) !important;
-                box-shadow: none !important;
-              }
-        - type: custom:mushroom-number-card
-          entity: number.marstek_venus_modbus_maximale_ladeleistung
-          name: Max Laden
-          icon: mdi:battery-arrow-down
-          display_mode: slider
-          layout: horizontal
-          card_mod:
-            style: |
-              ha-card {
-                background: rgba(0, 0, 0, 0.25) !important;
-                border-radius: 18px !important;
-                border: 1px solid rgba(255, 255, 255, 0.05) !important;
-                box-shadow: none !important;
-              }
-        - type: custom:mushroom-number-card
-          entity: number.marstek_venus_modbus_maximaler_soc
-          name: Max SoC
-          icon: mdi:battery-charging-100
-          display_mode: slider
-          layout: horizontal
-          card_mod:
-            style: |
-              ha-card {
-                background: rgba(0, 0, 0, 0.25) !important;
-                border-radius: 18px !important;
-                border: 1px solid rgba(255, 255, 255, 0.05) !important;
-                box-shadow: none !important;
-              }
-    - type: custom:button-card
-      show_name: false
-      show_icon: false
-      styles:
-        card:
-          - height: 2px
-          - background: transparent
-          - border: none
-          - box-shadow: none
-          - padding: 0
-          - margin: 0
-    - type: custom:layout-card
-      layout_type: grid
-      layout:
-        grid-template-columns: repeat(4, minmax(0, 1fr))
-        gap: 8px
-      cards:
-        - type: custom:button-card
-          entity: sensor.marstek_batterie_laden
-          name: >
-            [[[ return parseFloat(entity.state) > 0 ? `Laden: ${entity.state}W`
-            : "Laden"; ]]]
-          icon: mdi:battery-charging
-          styles:
-            card:
-              - height: 90px
-              - border-radius: 20px
-              - background: >
-                  [[[ return parseFloat(entity.state) > 0 ?
-                  "linear-gradient(135deg,#00b894,#55efc4)" :
-                  "rgba(255,255,255,0.1)"; ]]]
-        - type: custom:button-card
-          entity: sensor.marstek_batterie_entladen
-          name: >
-            [[[ return parseFloat(entity.state) > 0 ? `Entladen:
-            ${entity.state}W` : "Entladen"; ]]]
-          icon: mdi:battery-charging
-          styles:
-            card:
-              - height: 90px
-              - border-radius: 20px
-              - background: >
-                  [[[ return parseFloat(entity.state) > 0 ?
-                  "linear-gradient(135deg,#e17055,#fab1a0)" :
-                  "rgba(255,255,255,0.1)"; ]]]
-        - type: custom:button-card
-          entity: sensor.marstek_venus_modbus_batterie_ladezustand
-          name: |
-            [[[ return `SoC: ${entity.state}%`; ]]]
-          icon: mdi:battery-high
-          styles:
-            card:
-              - height: 90px
-              - border-radius: 20px
-              - background: "linear-gradient(135deg, #0984e3, #74b9ff)"
-        - type: custom:button-card
-          entity: sensor.marstek_batterie_zeitprognose
-          name: |
-            [[[ 
-              const val = entity.state;
-              return (val === 'Standby' || val === '--') ? "Standby" : `Rest: ${val}`; 
-            ]]]
-          icon: mdi:clock-fast
-          styles:
-            card:
-              - height: 90px
-              - border-radius: 20px
-              - background: |
-                  [[[ 
-                    return (entity.state === 'Standby' || entity.state === '--') 
-                      ? "rgba(255,255,255,0.1)" 
-                      : "linear-gradient(135deg, #0984e3, #74b9ff)"; 
-                  ]]]
-    - type: custom:layout-card
-      layout_type: grid
-      layout:
-        grid-template-columns: repeat(4, 1fr)
-        gap: 8px
-      cards:
-        - type: vertical-stack
-          cards:
-            - type: custom:mushroom-template-card
-              entity: sensor.marstek_venus_modbus_ac_leistung
-              primary: Leistung AC
-              secondary: "{{ states(entity) }} W"
-              icon: mdi:sine-wave
-              icon_color: purple
-              card_mod:
-                style: >
-                  ha-card { background: rgba(0,0,0,0.3) !important;
-                  border-radius: 1
-```
+## 📊 Das Marstek Steuerungs-Dashboard
+
+> **⚡ Update Juni 2026:** Das Dashboard wurde von Grund auf neu entwickelt. Die alte Version (Mushroom-Slider, einfache Status-Anzeige) wurde durch ein vollständiges **Glassmorphism-Dashboard** mit dynamischen Balken, Animationen und Echtzeit-Visualisierungen ersetzt.
+
+### ✨ Was ist neu?
+
+| Feature | Alt | Neu |
+|---|---|---|
+| Leistungsbalken | ✗ | ✅ Dynamisch grün/rot je nach Richtung |
+| Spannungs-/Frequenzanzeige | Nur Wert | ✅ Zonenbalken mit Marker & Pfeil |
+| Ladestandsanzeige | Text | ✅ SoC-Balken mit fließenden Punkten |
+| Animationen | ✗ | ✅ Laden ⚡ / Entladen / Standby |
+| Warnungen | ✗ | ✅ Kritisch <10%, Überhitzung >40°C |
+| Energieübersicht | ✗ | ✅ Netz · PV · Haus im Header |
+| Steuerung | Slider | ✅ Kompakte +/− Buttons |
+
+### 🖼️ Screenshots
+
+> <img width="1323" height="904" alt="Screenshot (481)" src="https://github.com/user-attachments/assets/76a8742a-ab92-47a8-a507-6e00911f33c2" />
+
+
+### ✨ Features im Detail
+
+- **Animierter Header** mit dynamischem Batterie-Icon (Laden ⚡ / Entladen / Standby), Online-Status und Echtzeit-Energieübersicht (Netzbezug · PV · Hausverbrauch)
+- **4 Status-Buttons** (Laden, Entladen, SoC, Restzeit) mit animierten Icons — springendes ⚡ beim Laden, pulsierendes 🔋 beim Entladen
+- **Dynamische Leistungsbalken** — grün beim Laden, rot beim Entladen — für Leistung AC/DC und Strom AC/DC
+- **Zonenbalken mit Marker und Pfeil** für Netz-Spannung (200–260V) und AC-Frequenz (47–53Hz) — Warnung bei Abweichung vom Normbereich
+- **Spannung DC** als Zonenbalken (44–58V) mit Marker bei 51.2V (LiFePO4 Nennspannung)
+- **Temperaturwarnung** mit pulsierendem Ring bei >40°C Innentemperatur
+- **Konfetti 🎉** bei SoC >95% und roter Blinkeffekt bei SoC <10%
+- **SoC-Balken** mit fließenden Punkten beim Laden/Entladen
+- **Vollzyklen-Anzeige**
+- **Backup-Funktion** als Toggle-Button
+- **Steuerung** per kompakten +/− Buttons: Ladeleistung, Max Laden, Max Entladen, Max SoC (je ±50W / ±5%)
+
+### 🔧 Benötigte HACS-Komponenten
+
+| Komponente | Typ |
+|---|---|
+| `button-card` | Frontend |
+| `mushroom` | Frontend |
+| `layout-card` | Frontend |
+| `stack-in-card` | Frontend |
+| `mod-card` | Frontend |
+
+### 📋 Verwendete Entities
+
+# Marstek Venus Modbus
+sensor.marstek_venus_modbus_ac_leistung
+sensor.marstek_venus_modbus_batterieleistung
+sensor.marstek_venus_modbus_ac_strom
+sensor.marstek_venus_modbus_batteriestrom
+sensor.marstek_venus_modbus_batterie_ladezustand
+sensor.marstek_venus_modbus_ac_spannung
+sensor.marstek_venus_modbus_ac_frequenz
+sensor.marstek_venus_modbus_batteriespannung
+sensor.marstek_venus_modbus_innentemperatur
+sensor.marstek_venus_modbus_gesamt_roundtrip_effizienz
+sensor.marstek_venus_modbus_vollzyklen_berechnet
+sensor.marstek_batterie_laden
+sensor.marstek_batterie_entladen
+sensor.marstek_energie_laden_kwh
+sensor.marstek_energie_entladen_kwh
+sensor.marstek_batterie_zeitprognose
+binary_sensor.marstek_venus_modbus_wlan_status
+select.marstek_venus_modbus_modus
+switch.marstek_venus_modbus_backup_funktion
+number.marstek_venus_modbus_ladeleistung_einstellen
+number.marstek_venus_modbus_maximale_entladeleistung
+number.marstek_venus_modbus_maximale_ladeleistung
+number.marstek_venus_modbus_maximaler_soc
+
+# Energieübersicht im Header
+sensor.shellypro3em_leistung      # Netzbezug (Shelly Pro 3EM)
+sensor.pv_power                   # PV-Leistung
+sensor.haus_leistung_gesamt       # Hausverbrauch
+
+
+### 📥 Installation
+
+1. Datei `batterie_dashboard.yaml` herunterladen
+2. In Home Assistant eine neue **Section** anlegen
+3. Karte hinzufügen → **YAML-Editor** → Inhalt einfügen
+4. Entity-IDs ggf. an eigene Installation anpassen
+
+> **Hinweis:** Das Dashboard ist für das **Sections-Layout** in Home Assistant optimiert (`column_span: 24`). Die `sensor.shellypro3em_leistung`, `sensor.pv_power` und `sensor.haus_leistung_gesamt` Entities im Header können durch eigene Sensoren ersetzt oder entfernt werden.
+>
+> 
 ### Schritt 5 (Optionales Feintuning): siehe weiter unten bei den Updates
 
 Hui das war lang, sorry dafür ;) Hab ich noch was vergessen? Ach ja der
